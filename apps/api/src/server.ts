@@ -18,6 +18,9 @@ const app = await buildApp({
   webRoot: hasWeb ? webRoot : undefined,
 });
 if (!hasWeb) app.log.warn({ webRoot }, 'build do SPA ausente: servindo somente a API');
+db.onIdleClientError((err) => {
+  app.log.warn({ err }, 'conexão ociosa com o banco perdida');
+});
 app.addHook('onClose', () => db.close());
 
 // Graceful shutdown: para de aceitar conexões (503 durante o fechamento) e conclui as em curso

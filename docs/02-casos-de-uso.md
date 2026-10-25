@@ -11,7 +11,7 @@
 
 ## 2.2 Diagrama
 
-![Diagrama de casos de uso](diagramas/casos-de-uso.svg)
+![Diagrama de casos de uso](diagramas/casos-de-uso.png)
 
 > Fonte: [`diagramas/casos-de-uso.puml`](diagramas/casos-de-uso.puml) (PlantUML). O SVG é gerado a partir da fonte e versionado junto.
 

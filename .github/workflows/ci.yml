@@ -73,16 +73,25 @@ jobs:
           git /repo --redact --verbose
 
   versions:
-    name: Versões dos pacotes
+    name: Commits e versões
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # merge-base com origin/main
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
+      - uses: ./.github/actions/setup
+      # O bump depende do tipo do commit: mensagem fora do padrão falha aqui em vez de virar
+      # "sem bump" (cobre commits feitos sem o hook commit-msg). Commits de merge são ignorados.
+      - name: Validar mensagens de commit
+        env:
+          FROM: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          TO: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -z "$FROM" ] || [ "$FROM" = "0000000000000000000000000000000000000000" ]; then
+            FROM=$(git merge-base origin/main "$TO")
+          fi
+          pnpm exec commitlint --from "$FROM" --to "$TO" --verbose
       # Garante o bump único em relação à main mesmo para commits feitos sem os hooks
       - run: node scripts/bump-versions.js --check
 

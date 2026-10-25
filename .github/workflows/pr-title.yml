@@ -1,0 +1,35 @@
+# No squash merge, o título do PR vira a mensagem do commit na main: valida com o mesmo
+# commitlint dos commits. Workflow separado do CI para reagir à edição do título sem
+# reexecutar o pipeline inteiro.
+name: PR title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+concurrency:
+  group: pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  title:
+    name: Título do PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # merge-base com origin/main
+      - uses: ./.github/actions/setup
+      # Título via env, nunca interpolado no script (evita injeção de comandos)
+      - name: Validar título
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$TITLE" | pnpm exec commitlint --verbose
+      - name: Tipo do título corresponde ao maior bump da branch
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: node scripts/bump-versions.js --check-title

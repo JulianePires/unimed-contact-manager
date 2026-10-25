@@ -9,11 +9,13 @@
 // Dependentes internos de um pacote atualizado recebem ao menos patch.
 // O cálculo é idempotente: vários commits na mesma branch geram um único bump sobre a main.
 //
-// Uso: pnpm version:bump [--dry-run | --check | --hook]
-//   --dry-run  só mostra o que mudaria
-//   --check    falha se alguma versão difere do alvo (CI)
-//   --hook     grava e inclui os package.json no último commit (Husky: post-commit e post-rewrite)
-// A referência da main é `origin/main` (ou `main`, se não houver remoto); sobrescreva com BUMP_BASE.
+// Uso: pnpm version:bump [--dry-run | --check | --check-title | --hook]
+//   --dry-run      só mostra o que mudaria
+//   --check        falha se alguma versão difere do alvo (CI)
+//   --check-title  falha se o tipo do título do PR (env PR_TITLE) não corresponde ao maior bump
+//   --hook         grava e inclui os package.json no último commit (Husky: post-commit e post-rewrite)
+// A referência da main é `origin/main` (ou `main`, se não houver remoto), atualizada com fetch
+// antes de gravar; sobrescreva com BUMP_BASE.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -24,7 +26,9 @@ const HEADER = /^(?<type>\w+)(?:\([^)]*\))?(?<breaking>!)?: .+/;
 const BREAKING_FOOTER = /^BREAKING[ -]CHANGE: /m;
 const VERSION_FIELD = /("version":\s*")[^"]+(")/;
 
-const mode = ['--dry-run', '--check', '--hook'].find((flag) => process.argv.includes(flag));
+const mode = ['--dry-run', '--check-title', '--check', '--hook'].find((flag) =>
+  process.argv.includes(flag),
+);
 
 function git(...args) {
   return execFileSync('git', args, {
@@ -69,7 +73,33 @@ function workspaceDirs() {
   );
 }
 
+/**
+ * Atualiza `origin/main` antes de calcular: com a ref local defasada, o alvo sairia de uma main
+ * antiga e o CI rejeitaria a branch. Sem rede ou credencial, segue com a ref local e avisa
+ * (o `--check` do CI cobre esse caso). Nunca pede senha nem trava o commit.
+ */
+function refreshMain() {
+  try {
+    execFileSync('git', ['fetch', '--quiet', '--no-tags', 'origin', 'main'], {
+      stdio: 'ignore',
+      timeout: 15_000,
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: '0',
+        GIT_SSH_COMMAND: process.env.GIT_SSH_COMMAND ?? 'ssh -o BatchMode=yes -o ConnectTimeout=10',
+      },
+    });
+  } catch {
+    process.stderr.write(
+      'Aviso: não foi possível atualizar origin/main; usando a ref local (pode estar defasada).\n',
+    );
+  }
+}
+
 function mainRef() {
+  // No CI (--check*), o checkout com histórico completo já traz a origin/main atual
+  const writes = mode !== '--check' && mode !== '--check-title';
+  if (writes && !process.env.BUMP_BASE && tryGit('remote', 'get-url', 'origin')) refreshMain();
   const candidates = process.env.BUMP_BASE ? [process.env.BUMP_BASE] : ['origin/main', 'main'];
   const ref = candidates.find((candidate) => tryGit('rev-parse', '--verify', '--quiet', candidate));
   if (!ref) throw new Error(`Referência da main não encontrada (${candidates.join(', ')}).`);
@@ -104,6 +134,44 @@ function onlyVersionChanged(hash, dir) {
   );
 }
 
+/** Tipos de título aceitos para cada nível de bump. */
+const TITLE_HINTS = [
+  'chore, docs, refactor, test, ci, build ou style',
+  'fix, perf ou revert',
+  'feat',
+  'qualquer tipo com `!` (ex.: feat!:)',
+];
+
+/**
+ * No squash merge, o título do PR vira o commit da main: o nível dele precisa ser o maior bump
+ * entre os commits da branch, para o histórico refletir as versões geradas.
+ */
+function checkTitle(title, packages) {
+  // A criação de um pacote não gera bump de versão, mas define o tipo do título (ex.: feat)
+  const commitsOf = (pkg) => (pkg.creation ? [pkg.creation, ...pkg.commits] : pkg.commits);
+  const expected = Math.max(0, ...packages.flatMap((pkg) => commitsOf(pkg).map((c) => c.level)));
+  const actual = commitLevel(title, '');
+  if (actual === expected) {
+    process.stdout.write(`Título compatível com o bump da branch (${LEVELS[expected]}).\n`);
+    return;
+  }
+  const drivers = new Map();
+  for (const pkg of packages) {
+    for (const c of commitsOf(pkg).filter((c) => c.level === expected && expected > 0)) {
+      drivers.set(c.hash, `  ${c.hash} [${LEVELS[c.level]}] ${c.subject}`);
+    }
+  }
+  process.stderr.write(
+    [
+      `Título "${title}" indica bump ${LEVELS[actual]}, mas os commits da branch indicam ${LEVELS[expected]}.`,
+      ...drivers.values(),
+      `Use no título: ${TITLE_HINTS[expected]}.`,
+      '',
+    ].join('\n'),
+  );
+  process.exitCode = 1;
+}
+
 /** Rebase, cherry-pick e revert reaplicam commits: o hook não deve emendá-los. */
 function sequencerInProgress() {
   const gitDir = git('rev-parse', '--git-dir');
@@ -122,15 +190,36 @@ function main() {
     const path = `${dir}/package.json`;
     const raw = readFileSync(path, 'utf8');
     const json = JSON.parse(raw);
-    // Pacote criado na branch parte da versão com que foi criado
     const baseRaw = tryGit('show', `${base}:${path}`);
-    const baseVersion = baseRaw ? JSON.parse(baseRaw).version : json.version;
-    const commits = branchCommits(dir, base);
+    let since = base;
+    let creation = null;
+    let baseVersion = baseRaw ? JSON.parse(baseRaw).version : json.version;
+    if (!baseRaw) {
+      // Pacote criado na branch: a versão de criação é a inicial e o commit de criação não gera
+      // bump (contá-lo faria a versão avançar a cada execução, já que o bump o emenda)
+      const created = git(
+        'log',
+        '--reverse',
+        '--diff-filter=A',
+        '--format=%H',
+        `${base}..HEAD`,
+        '--',
+        path,
+      ).split('\n')[0];
+      if (created) {
+        since = created;
+        const [subject = '', body = ''] = git('log', '-1', '--format=%s%x1f%b', created).split('');
+        creation = { hash: created.slice(0, 7), subject, level: commitLevel(subject, body) };
+        baseVersion = JSON.parse(git('show', `${created}:${path}`)).version;
+      }
+    }
+    const commits = branchCommits(dir, since);
     const level = Math.max(0, ...commits.map((c) => c.level));
-    return { path, raw, json, baseVersion, commits, level, reasons: [] };
+    return { path, raw, json, baseVersion, commits, level, isNew: !baseRaw, creation, reasons: [] };
   });
 
-  // Propaga patch para dependentes internos até estabilizar
+  // Propaga patch para dependentes internos até estabilizar. Pacote criado na branch não tem
+  // versão anterior na main a proteger (e o bump emendado na criação viraria nova base)
   const byName = new Map(packages.map((pkg) => [pkg.json.name, pkg]));
   let changed = true;
   while (changed) {
@@ -139,13 +228,18 @@ function main() {
       const deps = { ...pkg.json.dependencies, ...pkg.json.devDependencies };
       for (const name of Object.keys(deps)) {
         const dep = byName.get(name);
-        if (dep && dep.level > 0 && pkg.level === 0) {
+        if (dep && dep.level > 0 && pkg.level === 0 && !pkg.isNew) {
           pkg.level = 1;
           pkg.reasons.push(`dependência ${name} atualizada`);
           changed = true;
         }
       }
     }
+  }
+
+  if (mode === '--check-title') {
+    checkTitle(process.env.PR_TITLE ?? '', packages);
+    return;
   }
 
   const outdated = packages

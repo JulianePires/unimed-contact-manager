@@ -15,6 +15,7 @@ A listagem precisa de busca por nome, e-mail ou celular. Usuários digitam sem a
    - contém `@` → busca em `email`;
    - demais casos → busca em `name` e `email`.
 2. **Normalização no banco:** extensões `unaccent` e `pg_trgm`. Como `unaccent()` não é `IMMUTABLE` (depende de dicionário configurável) e não pode ser usada diretamente em índice, cria-se uma função wrapper imutável:
+
    ```sql
    CREATE FUNCTION f_unaccent(text) RETURNS text
      LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
@@ -23,6 +24,7 @@ A listagem precisa de busca por nome, e-mail ou celular. Usuários digitam sem a
    CREATE INDEX contacts_name_trgm
      ON contacts USING gin (f_unaccent(lower(name)) gin_trgm_ops);
    ```
+
    Índices análogos para `email` e `mobile_e164`.
 3. **Consulta:** `f_unaccent(lower(name)) ILIKE '%' || f_unaccent(lower($q)) || '%'`, sempre combinada com `owner_id` e filtros de `status`/`favorite`.
 4. Termos com menos de 2 caracteres não disparam busca.

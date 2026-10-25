@@ -61,7 +61,8 @@ Monorepo **pnpm workspaces + Turborepo** (ADR-007, ADR-010).
 ├── packages/
 │   ├── contracts/                   # schemas Zod, DTOs, códigos de erro
 │   ├── tsconfig/                    # bases TS (strict)
-│   └── eslint-config/               # flat config compartilhada
+│   ├── eslint-config/               # flat config compartilhada (base, node, react)
+│   └── vitest-config/               # presets do Vitest (node, react, integration)
 ├── docs/                            # esta documentação
 ├── .github/workflows/ci.yml
 ├── docker-compose.yml               # postgres, migrate, api, worker
@@ -73,11 +74,11 @@ Monorepo **pnpm workspaces + Turborepo** (ADR-007, ADR-010).
 
 ## 7.1 Responsabilidades por pacote
 
-| Pacote | Depende de | Publica |
-|---|---|---|
+| Pacote                | Depende de                 | Publica                                                                                  |
+| --------------------- | -------------------------- | ---------------------------------------------------------------------------------------- |
 | `@contatos/contracts` | `zod`, `libphonenumber-js` | Schemas de entrada/saída, enums, códigos de erro, normalização de telefone compartilhada |
-| `@contatos/api` | `contracts` | Imagem Docker (`server`, `worker`, `migrate`) |
-| `@contatos/web` | `contracts` | `dist/` estático, embutido na imagem da API |
+| `@contatos/api`       | `contracts`                | Imagem Docker (`server`, `worker`, `migrate`)                                            |
+| `@contatos/web`       | `contracts`                | `dist/` estático, embutido na imagem da API                                              |
 
 ## 7.2 Pipeline do Turborepo
 
@@ -93,16 +94,16 @@ flowchart LR
 
 ## 7.3 Scripts
 
-| Comando | Efeito |
-|---|---|
-| `pnpm dev` | Postgres via Compose + API (watch) + worker + Vite com proxy `/api` |
-| `pnpm lint` / `pnpm typecheck` | Em todos os pacotes (cache Turbo) |
-| `pnpm test` | Unitários (back e front) |
-| `pnpm test:integration` | Integração com Testcontainers (requer Docker) |
-| `pnpm test:e2e` | Playwright contra a stack completa |
-| `pnpm build` | Build de produção |
-| `pnpm db:migrate` / `pnpm db:seed` | Migrations / usuário demo e contatos de exemplo |
-| `docker compose up --build` | Ambiente completo semelhante à produção |
+| Comando                            | Efeito                                                              |
+| ---------------------------------- | ------------------------------------------------------------------- |
+| `pnpm dev`                         | Postgres via Compose + API (watch) + worker + Vite com proxy `/api` |
+| `pnpm lint` / `pnpm typecheck`     | Em todos os pacotes (cache Turbo)                                   |
+| `pnpm test`                        | Unitários (back e front)                                            |
+| `pnpm test:integration`            | Integração com Testcontainers (requer Docker)                       |
+| `pnpm test:e2e`                    | Playwright contra a stack completa                                  |
+| `pnpm build`                       | Build de produção                                                   |
+| `pnpm db:migrate` / `pnpm db:seed` | Migrations / usuário demo e contatos de exemplo                     |
+| `docker compose up --build`        | Ambiente completo semelhante à produção                             |
 
 ## 7.4 Convenções
 

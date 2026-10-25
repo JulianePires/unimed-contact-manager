@@ -7,6 +7,13 @@ packages:
 onlyBuiltDependencies:
   - esbuild
 
+# Scripts recusados de propósito (dependências do Testcontainers): cpu-features é um acelerador
+# nativo opcional do ssh2 e o script do protobufjs só verifica versão.
+ignoredBuiltDependencies:
+  - cpu-features
+  - protobufjs
+  - ssh2
+
 peerDependencyRules:
   allowedVersions:
     # jsx-a11y 6.10.2 declara peer até ESLint 9, mas funciona no 10 (verificado). ADR-011.

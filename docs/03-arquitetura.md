@@ -225,16 +225,17 @@ flowchart TB
 
 ### Configuração (variáveis de ambiente)
 
-| Variável                                    | Exemplo                    | Uso                    |
-| ------------------------------------------- | -------------------------- | ---------------------- |
-| `DATABASE_URL`                              | `postgres://…`             | Conexão                |
-| `NODE_ENV`                                  | `production`               | Comportamento          |
-| `WORKER_MODE`                               | `standalone` \| `embedded` | Consumo da fila        |
-| `SESSION_COOKIE_NAME`                       | `__Host-sid`               | `sid` em dev sem HTTPS |
-| `SESSION_IDLE_MINUTES` / `SESSION_MAX_DAYS` | `120` / `7`                | Expiração              |
-| `IMPORT_MAX_BYTES`                          | `5242880`                  | Limite de upload       |
-| `IMPORT_ERRORS_RETENTION_DAYS`              | `30`                       | Retenção (RN15)        |
-| `LOG_LEVEL`                                 | `info`                     | Logs                   |
+| Variável                                    | Exemplo                    | Uso                                                 |
+| ------------------------------------------- | -------------------------- | --------------------------------------------------- |
+| `DATABASE_URL`                              | `postgres://…`             | Conexão                                             |
+| `NODE_ENV`                                  | `production`               | Comportamento                                       |
+| `WORKER_MODE`                               | `standalone` \| `embedded` | Consumo da fila                                     |
+| `SESSION_COOKIE_NAME`                       | `__Host-sid`               | `sid` em dev sem HTTPS                              |
+| `SESSION_IDLE_MINUTES` / `SESSION_MAX_DAYS` | `120` / `7`                | Expiração                                           |
+| `IMPORT_MAX_BYTES`                          | `5242880`                  | Limite de upload                                    |
+| `IMPORT_ERRORS_RETENTION_DAYS`              | `30`                       | Retenção (RN15)                                     |
+| `LOG_LEVEL`                                 | `info`                     | Logs                                                |
+| `WEB_DIST_DIR` (opcional)                   | `/app/apps/web/dist`       | Build do SPA servido em `/`; padrão `apps/web/dist` |
 
 ## 3.7 Preocupações transversais
 

@@ -55,6 +55,7 @@
 | 428  | `PRECONDITION_REQUIRED`              | `PATCH` sem `If-Match`                                                |
 | 429  | `RATE_LIMITED`                       | Limite excedido (com `Retry-After`)                                   |
 | 500  | `INTERNAL_ERROR`                     | Erro inesperado (sem detalhes internos)                               |
+| 503  | `SERVICE_UNAVAILABLE`                | Dependência indisponível (ex.: `/health/ready` sem banco)             |
 
 Formato de `errors[]` em `422`:
 ```json

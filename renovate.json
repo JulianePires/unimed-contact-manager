@@ -1,0 +1,45 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommits", ":semanticCommitScope(deps)"],
+  "timezone": "America/Recife",
+  "schedule": ["before 6am on monday"],
+  "rangeStrategy": "pin",
+  "lockFileMaintenance": { "enabled": true },
+  "packageRules": [
+    {
+      "description": "ADR-011: typescript-eslint 8 suporta TypeScript < 6.1",
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "<6.1.0"
+    },
+    {
+      "description": "ADR-011: manter pnpm 10 até validar turbo prune com versões novas",
+      "matchPackageNames": ["pnpm"],
+      "allowedVersions": "<11"
+    },
+    {
+      "groupName": "eslint",
+      "matchPackageNames": [
+        "eslint",
+        "@eslint/**",
+        "eslint-*",
+        "typescript-eslint",
+        "@typescript-eslint/**",
+        "globals"
+      ]
+    },
+    { "groupName": "commitlint", "matchPackageNames": ["@commitlint/**"] },
+    { "groupName": "vitest", "matchPackageNames": ["vitest", "@vitest/**"] },
+    {
+      "groupName": "react",
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"]
+    },
+    { "groupName": "tanstack", "matchPackageNames": ["@tanstack/**"] },
+    { "groupName": "fastify", "matchPackageNames": ["fastify", "@fastify/**", "fastify-*"] },
+    { "groupName": "drizzle", "matchPackageNames": ["drizzle-orm", "drizzle-kit"] },
+    {
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "devDependencies (non-major)"
+    }
+  ]
+}

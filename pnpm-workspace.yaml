@@ -1,3 +1,13 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - 'apps/*'
+  - 'packages/*'
+
+# Pacotes autorizados a executar scripts de instalação (postinstall etc.).
+# Adicione somente o necessário (ex.: esbuild, argon2) — ADR-011.
+onlyBuiltDependencies:
+  - esbuild
+
+peerDependencyRules:
+  allowedVersions:
+    # jsx-a11y 6.10.2 declara peer até ESLint 9, mas funciona no 10 (verificado). ADR-011.
+    eslint-plugin-jsx-a11y>eslint: '10'

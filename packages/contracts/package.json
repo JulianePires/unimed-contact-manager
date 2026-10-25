@@ -1,0 +1,16 @@
+{
+  "name": "@contatos/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "@contatos/tsconfig": "workspace:*"
+  }
+}

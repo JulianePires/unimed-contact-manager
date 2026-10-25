@@ -1,0 +1,7 @@
+{
+  "extends": "@contatos/tsconfig/node.json",
+  "compilerOptions": {
+    "rootDir": "."
+  },
+  "include": ["src", "test", "*.ts"]
+}

@@ -1,0 +1,76 @@
+@startuml casos-de-uso
+title Gerenciador de Contatos — Diagrama de Casos de Uso
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam usecase {
+  BackgroundColor #EEF2FF
+  BorderColor #1E3A8A
+  ArrowColor #1E3A8A
+}
+skinparam actorBorderColor #1E3A8A
+
+actor "Visitante" as Visitante
+actor "Usuário autenticado" as Usuario
+actor "Worker de importação" as Worker <<sistema>>
+actor "Agendador" as Agendador <<tempo>>
+
+Visitante <|-- Usuario
+
+  rectangle "Sistema: Acesso" {
+    usecase "UC01 Criar conta" as UC01
+    usecase "UC02 Autenticar-se" as UC02
+    usecase "UC03 Encerrar sessão" as UC03
+  }
+
+  rectangle "Sistema: Contatos" {
+    usecase "UC04 Cadastrar contato" as UC04
+    usecase "UC05 Consultar contatos" as UC05
+    usecase "Buscar por nome,\ne-mail ou celular" as UCbusca
+    usecase "Filtrar por favorito\ne status" as UCfiltro
+    usecase "UC06 Visualizar contato" as UC06
+    usecase "UC07 Editar contato" as UC07
+    usecase "UC08 Inativar contato" as UC08
+    usecase "UC09 Reativar contato" as UC09
+    usecase "UC10 Favoritar /\ndesfavoritar contato" as UC10
+    usecase "UC11 Eliminar dados\nde contato (LGPD)" as UC11
+    usecase "Validar e normalizar\ndados do contato" as UCvalidar
+  }
+
+  rectangle "Sistema: Importação" {
+    usecase "UC12 Importar contatos\nvia CSV" as UC12
+    usecase "UC13 Acompanhar importação" as UC13
+    usecase "UC14 Consultar linhas\ncom erro" as UC14
+    usecase "Baixar CSV de erros" as UCbaixar
+    usecase "UC15 Processar importação" as UC15
+    usecase "UC16 Expurgar dados\nretidos" as UC16
+  }
+
+Visitante --> UC01
+Visitante --> UC02
+Usuario --> UC03
+Usuario --> UC04
+Usuario --> UC05
+Usuario --> UC06
+Usuario --> UC07
+Usuario --> UC08
+Usuario --> UC10
+Usuario --> UC11
+Usuario --> UC12
+Usuario --> UC13
+Usuario --> UC14
+
+UC05 <.. UCbusca : <<extend>>
+UC05 <.. UCfiltro : <<extend>>
+UC09 .> UC04 : <<extend>>\n[celular de\ncontato inativo]
+UC09 .> UC06 : <<extend>>\n[contato inativo]
+UC04 ..> UCvalidar : <<include>>
+UC07 ..> UCvalidar : <<include>>
+UC15 ..> UCvalidar : <<include>>
+UCbaixar .> UC14 : <<extend>>
+
+UC12 ..> UC15 : <<dispara>>
+UC15 <-- Worker
+UC16 <-- Agendador
+
+@enduml

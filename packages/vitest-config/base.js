@@ -8,6 +8,7 @@ import { configDefaults, defineConfig } from 'vitest/config';
 export const unitExclude = [...configDefaults.exclude, '**/test/integration/**', '**/e2e/**'];
 
 export const base = defineConfig({
+  resolve: { tsconfigPaths: true },
   test: {
     // Isolamento entre testes: mocks, envs e globals sempre restaurados
     restoreMocks: true,

@@ -6,8 +6,8 @@ export default mergeConfig(
   defineConfig({
     test: {
       coverage: {
-        // Entrypoint e adaptador do banco são exercitados pelos testes de integração
-        exclude: ['src/server.ts', 'src/shared/db/client.ts'],
+        // Entrypoints e camada de dados são exercitados pelos testes de integração
+        exclude: ['src/server.ts', 'src/migrate.ts', 'src/shared/db/**'],
         // Domínio puro tem meta maior que a global (docs/09 §9.5)
         thresholds: { 'src/modules/*/domain/**': { lines: 90 } },
       },

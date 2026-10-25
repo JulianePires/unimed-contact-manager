@@ -15,7 +15,10 @@
     "format": "biome format --write",
     "format:check": "biome format",
     "version:bump": "node scripts/bump-versions.js",
-    "prepare": "husky"
+    "prepare": "husky",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:generate": "pnpm --filter @contatos/api db:generate",
+    "db:migrate": "pnpm --filter @contatos/api db:migrate"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.3",

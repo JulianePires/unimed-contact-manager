@@ -45,6 +45,10 @@ Detalhes em `docs/09-estrategia-de-testes.md`.
 - Relatórios de cobertura e do Playwright publicados como artefatos.
 - Auditoria de dependências e atualização automatizada (Renovate ou Dependabot).
 
+**Implementação** (`.github/workflows/ci.yml`): jobs paralelos `quality` (Biome, lint, typecheck), `test` (unitários com cobertura, publicada como artefato), `integration` (Testcontainers no Docker do runner) e `security` (`pnpm audit --audit-level=high` e gitleaks no histórico), e `versions` (commitlint nos commits do PR e `bump-versions.js --check`), seguidos de `build`. O workflow `pr-title.yml` valida o título do PR com o mesmo commitlint, porque no squash merge ele vira a mensagem do commit na `main`, e exige que o tipo do título corresponda ao maior bump entre os commits da branch (`bump-versions.js --check-title`). O job `CI ok` agrega todos e é o único check exigido na proteção da `main`. Actions fixadas por SHA (atualizadas pelo Renovate); setup comum em `.github/actions/setup`.
+
+**Pendente até existir a aplicação:** e2e (Compose + Playwright), Lighthouse CI e imagem Docker entram no workflow junto com o `Dockerfile`, o `render.yaml` e os testes E2E. O deploy não roda no GitHub Actions: o Blueprint usa `autoDeployTrigger: checksPass`, e o Render só faz deploy de um commit da `main` depois que os checks passam.
+
 ### Deploy (Render, declarado em `render.yaml`)
 
 - **Web Service** (Docker): Fastify serve a **API em `/api`** e o **SPA em `/`** na mesma origem, com headers de segurança e CSP via `@fastify/helmet`, fallback de rotas do SPA para `index.html` e cache longo para assets com hash.

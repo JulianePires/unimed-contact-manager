@@ -64,7 +64,9 @@ Monorepo **pnpm workspaces + Turborepo** (ADR-007, ADR-010).
 │   ├── eslint-config/               # flat config compartilhada (base, node, react)
 │   └── vitest-config/               # presets do Vitest (node, react, integration)
 ├── docs/                            # esta documentação
-├── .github/workflows/ci.yml
+├── .github/
+│   ├── actions/setup/               # pnpm + Node + install + cache do Turbo
+│   └── workflows/ci.yml
 ├── docker-compose.yml               # postgres, migrate, api, worker
 ├── render.yaml                      # Blueprint Render
 ├── turbo.json
@@ -110,4 +112,5 @@ flowchart LR
 - **Commits:** Conventional Commits; PRs pequenos com ADR quando houver decisão.
 - **Nomes:** arquivos em `kebab-case`; componentes em `PascalCase`; casos de uso como verbos (`create-contact.ts`).
 - **Importações:** alias `@/` por app; proibido importar `modules/*/repository` fora do próprio módulo (lint).
+- **Versões:** `version` de cada pacote segue SemVer a partir dos Conventional Commits da branch (`feat` → minor, `fix`/`perf`/`revert` → patch, `!`/`BREAKING CHANGE` → major), sempre um único bump sobre a versão da `main`. Os hooks `post-commit` e `post-rewrite` aplicam o bump (`scripts/bump-versions.js`); o CI verifica com `--check`.
 - **Qualidade local:** `lint-staged` + Husky executam formatação, lint e typecheck dos arquivos alterados.

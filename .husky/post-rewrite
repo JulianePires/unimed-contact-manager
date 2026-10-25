@@ -1,0 +1,3 @@
+# Após um rebase, recalcula as versões sobre a nova base (scripts/bump-versions.js)
+[ "$1" = rebase ] && BUMP_AFTER_REWRITE=1 node scripts/bump-versions.js --hook
+exit 0

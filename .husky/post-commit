@@ -1,0 +1,2 @@
+# Bump único de versão em relação à main (scripts/bump-versions.js)
+node scripts/bump-versions.js --hook

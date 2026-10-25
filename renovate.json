@@ -1,10 +1,17 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":semanticCommits", ":semanticCommitScope(deps)"],
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":semanticCommitScope(deps)",
+    "helpers:pinGitHubActionDigests"
+  ],
   "timezone": "America/Recife",
   "schedule": ["before 6am on monday"],
   "rangeStrategy": "pin",
-  "lockFileMaintenance": { "enabled": true },
+  "lockFileMaintenance": {
+    "enabled": true
+  },
   "packageRules": [
     {
       "description": "ADR-011: typescript-eslint 8 suporta TypeScript < 6.1",
@@ -27,19 +34,38 @@
         "globals"
       ]
     },
-    { "groupName": "commitlint", "matchPackageNames": ["@commitlint/**"] },
-    { "groupName": "vitest", "matchPackageNames": ["vitest", "@vitest/**"] },
+    {
+      "groupName": "commitlint",
+      "matchPackageNames": ["@commitlint/**"]
+    },
+    {
+      "groupName": "vitest",
+      "matchPackageNames": ["vitest", "@vitest/**"]
+    },
     {
       "groupName": "react",
       "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"]
     },
-    { "groupName": "tanstack", "matchPackageNames": ["@tanstack/**"] },
-    { "groupName": "fastify", "matchPackageNames": ["fastify", "@fastify/**", "fastify-*"] },
-    { "groupName": "drizzle", "matchPackageNames": ["drizzle-orm", "drizzle-kit"] },
+    {
+      "groupName": "tanstack",
+      "matchPackageNames": ["@tanstack/**"]
+    },
+    {
+      "groupName": "fastify",
+      "matchPackageNames": ["fastify", "@fastify/**", "fastify-*"]
+    },
+    {
+      "groupName": "drizzle",
+      "matchPackageNames": ["drizzle-orm", "drizzle-kit"]
+    },
     {
       "matchDepTypes": ["devDependencies"],
       "matchUpdateTypes": ["patch", "minor"],
       "groupName": "devDependencies (non-major)"
+    },
+    {
+      "groupName": "github-actions",
+      "matchManagers": ["github-actions"]
     }
   ]
 }

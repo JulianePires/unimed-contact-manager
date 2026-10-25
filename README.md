@@ -1,159 +1,95 @@
-# Turborepo starter
+# Gerenciador de Contatos
 
-This Turborepo starter is maintained by the Turborepo core team.
+Aplicação web para cadastro, consulta, organização e importação em lote de contatos. Cada usuário autenticado tem sua própria agenda.
 
-## Using this example
+> **Destaques de engenharia**
+>
+> - Celular **único por usuário, inclusive entre inativos**, garantido por constraint do PostgreSQL. Provado por teste com 20 requisições simultâneas.
+> - Importação CSV **assíncrona e idempotente**: registro, arquivo e job na mesma transação (pg-boss), checkpoint por lote, reprocessamento sem duplicados.
+> - Sessão em cookie `HttpOnly`, CSP com Trusted Types, proteção contra CSRF e CSV injection.
+> - Acessibilidade WCAG 2.2 AA verificada continuamente; adequação técnica à LGPD (anonimização, retenção, minimização).
 
-Run the following command:
+## Stack
 
-```sh
-npx create-turbo@latest
+| Camada   | Tecnologias                                                                                       |
+| -------- | ------------------------------------------------------------------------------------------------- |
+| Frontend | React 19.3 (React Compiler), Vite 8, TanStack Query · Router · Form, Zod, shadcn/ui + Tailwind v4 |
+| Backend  | Node.js 24 LTS, Fastify, Drizzle ORM, pg-boss, Zod, pino                                          |
+| Banco    | PostgreSQL (`citext`, `pg_trgm`, `unaccent`)                                                      |
+| Testes   | Vitest, Testing Library, MSW, Testcontainers, Playwright, axe, k6                                 |
+| Infra    | pnpm workspaces + Turborepo, Docker Compose, GitHub Actions, Render (Blueprint)                   |
+
+## Como executar
+
+**Pré-requisitos:** Docker e Docker Compose. Para desenvolvimento, Node.js 24 LTS (`.nvmrc`) e pnpm via Corepack (`corepack enable`).
+
+```bash
+# Ambiente completo, semelhante à produção
+cp .env.example .env
+docker compose up --build
+# → http://localhost:3000   (usuário demo: demo@contatos.app / demo-contatos-2026)
 ```
 
-## What's inside?
-
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `@next/eslint-plugin-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```bash
+# Desenvolvimento
+pnpm install
+pnpm db:up               # PostgreSQL via Compose
+pnpm dev                 # API (watch) + Vite com proxy /api
+pnpm --filter @contatos/api dev:worker   # worker (quando houver jobs)
+pnpm test                # unitários (back + front)
+pnpm test:integration    # integração com PostgreSQL real (requer Docker)
+pnpm test:e2e            # Playwright
 ```
 
-Without global `turbo`, use your package manager:
+> As credenciais demo são criadas apenas pelo seed de desenvolvimento/avaliação (a implementar).
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm exec turbo build
-pnpm exec turbo build
+## Estado atual
+
+Estrutura inicial configurada: monorepo, lint/format/typecheck, testes (Vitest), build (Vite + tsup), Docker, Compose, CI e Blueprint do Render. A API expõe apenas `/api/health/live` e o web exibe a tela inicial; as funcionalidades abaixo são o escopo planejado.
+
+## Funcionalidades
+
+- Criar conta, entrar e sair (inclusive de todas as sessões)
+- Contatos: cadastrar, listar com paginação, buscar por nome/e-mail/celular (sem diferenciar acentos), filtrar por favoritos e status, editar com detecção de alteração concorrente, inativar/reativar, favoritar e eliminar dados (LGPD)
+- Importação CSV: upload, acompanhamento em tempo real, relatório de erros por linha, download do CSV de erros e do CSV modelo, aviso de reenvio do mesmo arquivo
+
+### Regra de unicidade para inativos (exigência do desafio)
+
+O celular é único **na agenda de cada usuário, inclusive entre contatos inativos**. Cadastrar um número que pertence a um contato inativo retorna `409 MOBILE_BELONGS_TO_INACTIVE_CONTACT`, e a interface oferece reativar esse contato. O número só é liberado quando os dados do contato inativo são **eliminados** (anonimização). Justificativa completa em [ADR-001](docs/adr/ADR-001-unicidade-celular.md) e [ADR-009](docs/adr/ADR-009-lgpd-e-privacidade.md).
+
+### Formato do CSV
+
+```csv
+nome;email;celular;telefone
+Maria Silva;maria@empresa.com;(81) 99999-0000;(81) 3333-0000
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+Delimitador `,` ou `;`; UTF-8 ou Windows-1252; até 5 MB. Detalhes em [API › Formato do CSV](docs/05-api.md#formato-do-csv).
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+## Documentação
 
-```sh
-turbo build --filter=docs
+| Documento                                      | Conteúdo                                                                    |
+| ---------------------------------------------- | --------------------------------------------------------------------------- |
+| [01 · Requisitos](docs/01-requisitos.md)       | Escopo, requisitos funcionais, regras de negócio, requisitos não funcionais |
+| [02 · Casos de uso](docs/02-casos-de-uso.md)   | Atores, diagrama UML, especificações                                        |
+| [03 · Arquitetura](docs/03-arquitetura.md)     | C4 (contexto, containers, componentes), modelo de dados, implantação        |
+| [04 · Fluxos](docs/04-fluxos.md)               | Sequências: auth, concorrência, importação, LGPD; ciclos de vida            |
+| [05 · API](docs/05-api.md)                     | Contrato REST, erros, formato do CSV                                        |
+| [06 · Frontend](docs/06-frontend.md)           | Rotas, componentes, estado, acessibilidade                                  |
+| [07 · Estrutura](docs/07-estrutura.md)         | Monorepo, pastas, pipeline, scripts                                         |
+| [08 · Qualidade](docs/08-qualidade.md)         | Análise ISO/IEC 25010, ameaças, rastreabilidade, limitações                 |
+| [09 · Testes](docs/09-estrategia-de-testes.md) | Pirâmide, casos de teste, gates de CI                                       |
+| [ADRs](docs/adr/README.md)                     | 11 registros de decisão de arquitetura                                      |
+
+## Arquitetura em uma imagem
+
+```mermaid
+flowchart LR
+  B(["Navegador"]) -- HTTPS --> W["Web Service<br/>Fastify: API /api/v1 + SPA /"]
+  W --> P[("PostgreSQL<br/>dados · sessões · fila")]
+  K["Worker<br/>pg-boss"] --> P
 ```
 
-Without global `turbo`:
+## Limitações conhecidas
 
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+Paginação por offset, upload limitado a 5 MB e ausência de recuperação de senha são escolhas conscientes para o escopo, com caminhos de evolução em [Qualidade › Limitações](docs/08-qualidade.md#84-limitações-conhecidas-e-evolução).

@@ -5,8 +5,12 @@ export default mergeConfig(
   node,
   defineConfig({
     test: {
-      // Domínio puro tem meta maior que a global (docs/09 §9.5)
-      coverage: { thresholds: { 'src/modules/*/domain/**': { lines: 90 } } },
+      coverage: {
+        // Entrypoint e adaptador do banco são exercitados pelos testes de integração
+        exclude: ['src/server.ts', 'src/shared/db/client.ts'],
+        // Domínio puro tem meta maior que a global (docs/09 §9.5)
+        thresholds: { 'src/modules/*/domain/**': { lines: 90 } },
+      },
     },
   }),
 );

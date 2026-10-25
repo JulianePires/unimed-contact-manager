@@ -1,5 +1,9 @@
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { healthStatusSchema, problemDetailsSchema } from '@contatos/contracts';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { buildApp } from './app';
 
@@ -69,5 +73,64 @@ describe('erros', () => {
 
     expect(response.headers['x-content-type-options']).toBe('nosniff');
     expect(response.headers['content-security-policy']).toBeDefined();
+  });
+});
+
+describe('SPA', () => {
+  let webRoot: string;
+
+  beforeAll(async () => {
+    webRoot = await mkdtemp(join(tmpdir(), 'web-dist-'));
+    await mkdir(join(webRoot, 'assets'));
+    await writeFile(join(webRoot, 'index.html'), '<!doctype html><div id="root"></div>');
+    await writeFile(join(webRoot, 'assets', 'index-abc123.js'), 'console.log(1)');
+  });
+
+  afterAll(() => rm(webRoot, { recursive: true, force: true }));
+
+  async function spa() {
+    app = await buildApp({ db: { ping: () => Promise.resolve() }, webRoot });
+    return app;
+  }
+
+  it.each(['/', '/contatos/123'])('serve index.html em %s sem cache', async (url) => {
+    const server = await spa();
+
+    const response = await server.inject({ method: 'GET', url });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toContain('text/html');
+    expect(response.headers['cache-control']).toBe('no-cache');
+    expect(response.body).toContain('id="root"');
+  });
+
+  it('serve assets com hash em cache longo', async () => {
+    const server = await spa();
+
+    const response = await server.inject({ method: 'GET', url: '/assets/index-abc123.js' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['cache-control']).toBe('public, max-age=31536000, immutable');
+  });
+
+  it.each([
+    ['rota da API inexistente', 'GET', '/api/v1/nada'],
+    ['asset inexistente', 'GET', '/assets/nada.js'],
+    ['método que não é GET', 'POST', '/contatos'],
+  ] as const)('%s continua 404 em Problem Details', async (_, method, url) => {
+    const server = await spa();
+
+    const response = await server.inject({ method, url });
+
+    expect(response.statusCode).toBe(404);
+    expect(problemDetailsSchema.parse(response.json())).toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('não serve o front quando webRoot não é informado', async () => {
+    const server = await appWith(() => Promise.resolve());
+
+    const response = await server.inject({ method: 'GET', url: '/' });
+
+    expect(response.statusCode).toBe(404);
   });
 });

@@ -228,6 +228,7 @@ sequenceDiagram
 ## 4.9 Ciclos de vida
 
 ### Contato
+
 ```mermaid
 stateDiagram-v2
   [*] --> Ativo: cadastrar / importar
@@ -240,6 +241,7 @@ stateDiagram-v2
 ```
 
 ### Importação
+
 ```mermaid
 stateDiagram-v2
   [*] --> PENDING: upload aceito

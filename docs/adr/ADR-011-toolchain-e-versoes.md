@@ -23,9 +23,10 @@ A estrutura inicial do monorepo precisa fixar versões de runtime e ferramentas.
 Outras decisões:
 
 - **Versões fixadas (sem `^`)** e atualização assistida por Renovate, com agrupamentos.
-- **Uma configuração de ESLint na raiz**, com regras por pasta: domínio sem I/O (ADR-007); proibição de `dangerouslySetInnerHTML`, `localStorage` e `sessionStorage` (ADR-008/009); `jsx-a11y` strict.
+- **Configurações compartilhadas em pacotes internos**: `@contatos/eslint-config` (presets `base`, `node`, `react`) e `@contatos/vitest-config` (presets `node`, `react`, `integration`), em JS sem build. Cada app/pacote tem o próprio `eslint.config.js` e `vitest.config.ts`; regras específicas ficam no consumidor (ex.: domínio sem I/O na API, ADR-007). O preset `react` proíbe `dangerouslySetInnerHTML`, `localStorage`, `sessionStorage` e `indexedDB` (ADR-008/009) e aplica `jsx-a11y` strict.
 - **`packages/contracts` exporta TypeScript fonte**: o Vite consome direto e a API o embute no bundle (`tsup`, `noExternal`). Não há build intermediário.
 - **Imagem Docker única** (API + SPA + worker + migrate), montada com `turbo prune` e `pnpm deploy --prod`, executando como usuário sem privilégios.
+- **Biome como formatador** (JS/TS, JSON, CSS, Markdown, YAML) e **ESLint como linter**: o linter do Biome fica desligado; o ESLint cobre regras com tipos, `jsx-a11y` e restrições de arquitetura. `eslint-config-prettier` permanece para desligar regras de estilo do ESLint.
 - **Finais de linha LF** forçados por `.gitattributes`/`.editorconfig`, para colaboração entre Windows e CI Linux.
 
 ## Consequências

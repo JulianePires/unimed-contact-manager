@@ -1,6 +1,6 @@
 {
   "name": "@contatos/contracts",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -8,9 +8,16 @@
   },
   "scripts": {
     "lint": "eslint . --max-warnings=0",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
-    "@contatos/tsconfig": "workspace:*"
+    "@contatos/eslint-config": "workspace:*",
+    "@contatos/tsconfig": "workspace:*",
+    "@contatos/vitest-config": "workspace:*",
+    "@vitest/coverage-v8": "5.0.5",
+    "eslint": "10.13.0",
+    "vitest": "5.0.5"
   }
 }

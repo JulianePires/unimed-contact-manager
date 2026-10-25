@@ -1,0 +1,37 @@
+{
+  "name": "@contatos/vitest-config",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "*.js",
+    "*.d.ts"
+  ],
+  "exports": {
+    "./node": {
+      "types": "./node.d.ts",
+      "default": "./node.js"
+    },
+    "./react": {
+      "types": "./react.d.ts",
+      "default": "./react.js"
+    },
+    "./integration": {
+      "types": "./integration.d.ts",
+      "default": "./integration.js"
+    }
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc"
+  },
+  "peerDependencies": {
+    "vitest": "5.0.5"
+  },
+  "devDependencies": {
+    "@contatos/eslint-config": "workspace:*",
+    "@contatos/tsconfig": "workspace:*",
+    "eslint": "10.13.0",
+    "vitest": "5.0.5"
+  }
+}

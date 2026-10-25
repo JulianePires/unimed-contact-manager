@@ -9,27 +9,23 @@
     "lint:fix": "turbo run lint -- --fix",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:watch": "turbo run test:watch",
     "test:integration": "turbo run test:integration",
     "test:e2e": "turbo run test:e2e",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "biome format --write",
+    "format:check": "biome format",
     "prepare": "husky"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.3",
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
-    "@eslint/js": "10.0.1",
+    "@contatos/eslint-config": "workspace:*",
     "eslint": "10.13.0",
-    "eslint-config-prettier": "10.1.8",
-    "eslint-plugin-jsx-a11y": "6.10.2",
-    "eslint-plugin-react-hooks": "7.1.1",
-    "globals": "17.13.0",
     "husky": "9.1.7",
     "lint-staged": "17.6.0",
-    "prettier": "3.9.10",
     "turbo": "2.11.10",
-    "typescript": "6.0.3",
-    "typescript-eslint": "8.72.0"
+    "typescript": "6.0.3"
   },
   "packageManager": "pnpm@10.34.8",
   "engines": {

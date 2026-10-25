@@ -27,6 +27,18 @@ const IO_MODULES = [
   'child_process',
 ];
 
+/** Globais com I/O ou dependentes do ambiente: entram no domínio só por portas injetadas (ADR-007). */
+const IO_GLOBALS = [
+  'fetch',
+  'WebSocket',
+  'XMLHttpRequest',
+  'EventSource',
+  'process',
+  'setTimeout',
+  'setInterval',
+  'setImmediate',
+];
+
 export default defineConfig([
   globalIgnores(['drizzle/']),
   node,
@@ -53,6 +65,33 @@ export default defineConfig([
               message: 'Domínio não depende de camadas externas (ADR-007).',
             },
           ],
+        },
+      ],
+      'no-restricted-globals': [
+        'error',
+        ...IO_GLOBALS.map((name) => ({
+          name,
+          message: 'Domínio é puro: receba I/O por porta injetada (ADR-007).',
+        })),
+      ],
+      'no-restricted-properties': [
+        'error',
+        ...IO_GLOBALS.map((property) => ({
+          object: 'globalThis',
+          property,
+          message: 'Domínio é puro: receba I/O por porta injetada (ADR-007).',
+        })),
+      ],
+      // Relógio injetável no domínio (docs/09 §9.4)
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.object.name='Date'][callee.property.name='now']",
+          message: 'Use o Clock injetado (docs/09 §9.4).',
+        },
+        {
+          selector: "NewExpression[callee.name='Date'][arguments.length=0]",
+          message: 'Use o Clock injetado (docs/09 §9.4).',
         },
       ],
     },

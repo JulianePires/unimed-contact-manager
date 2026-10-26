@@ -9,6 +9,8 @@ import { deleteImport } from './delete';
 import { type EnqueueImportDeps, enqueueImport } from './enqueue';
 import { getImport } from './get';
 import { listImports } from './list';
+import { exportImportErrors } from './export-errors';
+import { listImportErrors } from './list-errors';
 
 const ownerId = '0192f3a1-0000-7000-8000-000000000001';
 const id = '0192f3a1-7c2e-7b10-9d4e-3f5a6b7c8d9e';
@@ -35,6 +37,10 @@ const row = (overrides: Partial<ImportRow> = {}): ImportRow => ({
   ...overrides,
 });
 
+async function* fromArray<T>(items: readonly T[]): AsyncGenerator<T> {
+  for (const item of items) yield await Promise.resolve(item);
+}
+
 function fakeRepository(overrides: Partial<ImportsRepository> = {}): ImportsRepository {
   return {
     insert: () => Promise.resolve(row()),
@@ -42,6 +48,8 @@ function fakeRepository(overrides: Partial<ImportsRepository> = {}): ImportsRepo
     findById: () => Promise.resolve(undefined),
     list: () => Promise.resolve({ imports: [row()], total: 1 }),
     delete: () => Promise.resolve(false),
+    listErrors: () => Promise.resolve({ errors: [], total: 0 }),
+    errorsInLineOrder: () => fromArray([]),
     findForProcessing: () => Promise.reject(new Error('não usado pela API')),
     startProcessing: () => Promise.reject(new Error('não usado pela API')),
     setTotalRows: () => Promise.reject(new Error('não usado pela API')),
@@ -153,5 +161,64 @@ describe('getImport, listImports e deleteImport', () => {
 
     expect(page.meta).toEqual({ page: 1, pageSize: 20, total: 1, totalPages: 1 });
     expect(page.data).toHaveLength(1);
+  });
+});
+
+describe('linhas com erro (RF18, RF19)', () => {
+  const errorRow = (lineNumber: number, raw: Record<string, string> | null) => ({
+    id: lineNumber,
+    importId: id,
+    lineNumber,
+    raw,
+    errors: [
+      { field: 'email', code: 'INVALID_EMAIL' as const, message: 'Informe um e-mail válido.' },
+    ],
+  });
+
+  it('lista paginada, com rawPurged nas linhas expurgadas', async () => {
+    const imports = fakeRepository({
+      findById: () => Promise.resolve(row()),
+      listErrors: () =>
+        Promise.resolve({ errors: [errorRow(3, { nome: 'A' }), errorRow(7, null)], total: 12 }),
+    });
+
+    const page = await listImportErrors(imports, ownerId, id, { page: 1, pageSize: 2 });
+
+    expect(page.meta).toEqual({ page: 1, pageSize: 2, total: 12, totalPages: 6 });
+    expect(page.data).toEqual([
+      expect.objectContaining({ lineNumber: 3, raw: { nome: 'A' } }),
+      expect.objectContaining({ lineNumber: 7, raw: null, rawPurged: true }),
+    ]);
+  });
+
+  it('exporta cabeçalho e linhas sob demanda, com nome de arquivo pelo id', async () => {
+    const imports = fakeRepository({
+      findById: () => Promise.resolve(row()),
+      errorsInLineOrder: () => fromArray([errorRow(3, { nome: '=1+1', email: 'a@' })]),
+    });
+
+    const csv = await exportImportErrors(imports, ownerId, id);
+    const lines: string[] = [];
+    for await (const line of csv.lines) lines.push(line);
+
+    expect(csv.fileName).toBe(`erros-importacao-${id}.csv`);
+    expect(lines).toEqual([
+      '﻿linha;nome;email;celular;telefone;motivo\r\n',
+      "3;'=1+1;a@;;;email: Informe um e-mail válido.\r\n",
+    ]);
+  });
+
+  it.each([
+    ['inexistente ou de outro usuário', id],
+    ['com id malformado', 'nao-e-uuid'],
+  ])('importação %s → 404 em ambas', async (_, importId) => {
+    const imports = fakeRepository();
+
+    await expect(
+      listImportErrors(imports, ownerId, importId, { page: 1, pageSize: 20 }),
+    ).rejects.toMatchObject({ status: 404 });
+    await expect(exportImportErrors(imports, ownerId, importId)).rejects.toMatchObject({
+      status: 404,
+    });
   });
 });

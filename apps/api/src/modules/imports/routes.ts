@@ -1,5 +1,7 @@
+import { Readable } from 'node:stream';
+
 import fastifyMultipart from '@fastify/multipart';
-import { listImportsQuerySchema } from '@contatos/contracts';
+import { listImportErrorsQuerySchema, listImportsQuerySchema } from '@contatos/contracts';
 import type { FastifyPluginAsync, FastifyRequest, preHandlerAsyncHookHandler } from 'fastify';
 import { z } from 'zod';
 
@@ -12,9 +14,11 @@ import { IMPORT_TEMPLATE_CSV } from './domain/import';
 import type { UploadedFile } from './domain/upload';
 import type { ImportsRepository } from './repository';
 import { deleteImport } from './use-cases/delete';
+import { exportImportErrors } from './use-cases/export-errors';
 import { type EnqueueImportDeps, enqueueImport } from './use-cases/enqueue';
 import { getImport } from './use-cases/get';
 import { listImports } from './use-cases/list';
+import { listImportErrors } from './use-cases/list-errors';
 
 export const IMPORTS_PATH = '/api/v1/imports';
 const UPLOAD_FIELD = 'file';
@@ -85,6 +89,27 @@ export const importsRoutes: FastifyPluginAsync<ImportsRoutesOptions> = async (ap
   app.get<ById>('/:id', (request) =>
     getImport(imports, requireUser(request).id, request.params.id),
   );
+
+  app.get<ById>('/:id/errors', (request) =>
+    listImportErrors(
+      imports,
+      requireUser(request).id,
+      request.params.id,
+      parseQuery(listImportErrorsQuerySchema, request.query),
+    ),
+  );
+
+  app.get<ById>('/:id/errors.csv', async (request, reply) => {
+    const { fileName, lines } = await exportImportErrors(
+      imports,
+      requireUser(request).id,
+      request.params.id,
+    );
+    return reply
+      .type('text/csv; charset=utf-8')
+      .header('content-disposition', `attachment; filename="${fileName}"`)
+      .send(Readable.from(lines));
+  });
 
   app.delete<ById>('/:id', async (request, reply) => {
     await deleteImport(imports, requireUser(request).id, request.params.id);

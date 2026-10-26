@@ -11,6 +11,7 @@ build/
 .turbo/
 
 # Testes e cobertura
+apps/api/test/fixtures/10k-linhas.csv
 coverage/
 playwright-report/
 test-results/

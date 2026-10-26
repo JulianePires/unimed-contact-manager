@@ -1,6 +1,6 @@
 {
   "name": "@contatos/api",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,7 +16,8 @@
     "test:integration": "vitest run --project integration",
     "db:up": "docker compose -f ../../docker-compose.yml up -d --wait postgres",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx --env-file-if-exists=.env src/migrate.ts"
+    "db:migrate": "tsx --env-file-if-exists=.env src/migrate.ts",
+    "fixtures:large": "tsx test/fixtures/generate-large-csv.ts"
   },
   "devDependencies": {
     "@contatos/eslint-config": "workspace:*",
@@ -40,8 +41,10 @@
     "@fastify/rate-limit": "11.2.1",
     "@fastify/static": "10.1.7",
     "argon2": "0.45.1",
+    "csv-parse": "7.0.3",
     "drizzle-orm": "0.45.4",
     "fastify": "5.12.7",
+    "iconv-lite": "0.7.3",
     "pg": "8.23.1",
     "pino": "10.4.0",
     "uuid": "14.0.3",

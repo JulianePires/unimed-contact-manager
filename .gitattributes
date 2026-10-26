@@ -5,6 +5,9 @@
 *.sh text eol=lf
 .husky/* text eol=lf
 
+# Fixtures de CSV: bytes exatos (BOM, CRLF e Windows-1252 fazem parte do teste)
+apps/api/test/fixtures/*.csv -text
+
 # Binários
 *.png binary
 *.jpg binary

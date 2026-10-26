@@ -1,11 +1,11 @@
-import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, Outlet, redirect, useNavigate, useRouter } from '@tanstack/react-router';
-import { toast } from 'sonner';
+import { useSuspenseQuery } from '@tanstack/react-query';
+import { createFileRoute, Outlet, redirect, useRouter } from '@tanstack/react-router';
 
 import { AuthenticatedLayout } from '@/components/layouts/authenticated-layout';
 import { PublicLayout } from '@/components/layouts/public-layout';
 import { Button } from '@/components/ui/button';
-import { logout, logoutAll, meQueryOptions } from '@/features/auth/api';
+import { meQueryOptions } from '@/features/auth/api';
+import { useLogout } from '@/features/auth/hooks/use-logout';
 import { ApiError } from '@/lib/http';
 
 /** Área autenticada (RF04): sem sessão → /entrar?redirect=<rota pedida> (docs/06 §6.1). */
@@ -43,31 +43,13 @@ function AuthenticatedError() {
 
 function AuthenticatedRoute() {
   const { data: user } = useSuspenseQuery(meQueryOptions);
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-
-  /**
-   * Ao sair, nenhum dado fica em memória (ADR-009 §4). Sessão já expirada (401) também conta como
-   * saída; outra falha mantém a sessão e avisa, pois o cookie ainda vale no servidor.
-   */
-  const leave = (end: () => Promise<void>) => async () => {
-    try {
-      await end();
-    } catch (error) {
-      if (!(error instanceof ApiError && error.status === 401)) {
-        toast.error('Não foi possível sair. Tente novamente.');
-        return;
-      }
-    }
-    queryClient.clear();
-    await navigate({ to: '/entrar' });
-  };
+  const { logout, logoutAll } = useLogout();
 
   return (
     <AuthenticatedLayout
       user={user}
-      onLogout={() => void leave(logout)()}
-      onLogoutAll={() => void leave(logoutAll)()}
+      onLogout={() => void logout()}
+      onLogoutAll={() => void logoutAll()}
     >
       <Outlet />
     </AuthenticatedLayout>

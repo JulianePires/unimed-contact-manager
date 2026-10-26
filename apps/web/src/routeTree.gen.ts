@@ -14,7 +14,9 @@ import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AuthContatosRouteImport } from './routes/_auth/contatos'
 import { Route as AuthImportacoesRouteImport } from './routes/_auth/importacoes'
+import { Route as PublicCriarContaRouteImport } from './routes/_public/criar-conta'
 import { Route as PublicEntrarRouteImport } from './routes/_public/entrar'
+import { Route as PublicPrivacidadeRouteImport } from './routes/_public/privacidade'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -39,9 +41,19 @@ const AuthImportacoesRoute = AuthImportacoesRouteImport.update({
   path: '/importacoes',
   getParentRoute: () => AuthRoute,
 } as any)
+const PublicCriarContaRoute = PublicCriarContaRouteImport.update({
+  id: '/criar-conta',
+  path: '/criar-conta',
+  getParentRoute: () => PublicRoute,
+} as any)
 const PublicEntrarRoute = PublicEntrarRouteImport.update({
   id: '/entrar',
   path: '/entrar',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicPrivacidadeRoute = PublicPrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
   getParentRoute: () => PublicRoute,
 } as any)
 
@@ -49,13 +61,17 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/contatos': typeof AuthContatosRoute
   '/importacoes': typeof AuthImportacoesRoute
+  '/criar-conta': typeof PublicCriarContaRoute
   '/entrar': typeof PublicEntrarRoute
+  '/privacidade': typeof PublicPrivacidadeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/contatos': typeof AuthContatosRoute
   '/importacoes': typeof AuthImportacoesRoute
+  '/criar-conta': typeof PublicCriarContaRoute
   '/entrar': typeof PublicEntrarRoute
+  '/privacidade': typeof PublicPrivacidadeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -64,13 +80,27 @@ export interface FileRoutesById {
   '/_public': typeof PublicRouteWithChildren
   '/_auth/contatos': typeof AuthContatosRoute
   '/_auth/importacoes': typeof AuthImportacoesRoute
+  '/_public/criar-conta': typeof PublicCriarContaRoute
   '/_public/entrar': typeof PublicEntrarRoute
+  '/_public/privacidade': typeof PublicPrivacidadeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/contatos' | '/importacoes' | '/entrar'
+  fullPaths:
+    | '/'
+    | '/contatos'
+    | '/importacoes'
+    | '/criar-conta'
+    | '/entrar'
+    | '/privacidade'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/contatos' | '/importacoes' | '/entrar'
+  to:
+    | '/'
+    | '/contatos'
+    | '/importacoes'
+    | '/criar-conta'
+    | '/entrar'
+    | '/privacidade'
   id:
     | '__root__'
     | '/'
@@ -78,7 +108,9 @@ export interface FileRouteTypes {
     | '/_public'
     | '/_auth/contatos'
     | '/_auth/importacoes'
+    | '/_public/criar-conta'
     | '/_public/entrar'
+    | '/_public/privacidade'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -124,11 +156,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthImportacoesRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_public/criar-conta': {
+      id: '/_public/criar-conta'
+      path: '/criar-conta'
+      fullPath: '/criar-conta'
+      preLoaderRoute: typeof PublicCriarContaRouteImport
+      parentRoute: typeof PublicRoute
+    }
     '/_public/entrar': {
       id: '/_public/entrar'
       path: '/entrar'
       fullPath: '/entrar'
       preLoaderRoute: typeof PublicEntrarRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/privacidade': {
+      id: '/_public/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PublicPrivacidadeRouteImport
       parentRoute: typeof PublicRoute
     }
   }
@@ -147,11 +193,15 @@ const AuthRouteChildren: AuthRouteChildren = {
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface PublicRouteChildren {
+  PublicCriarContaRoute: typeof PublicCriarContaRoute
   PublicEntrarRoute: typeof PublicEntrarRoute
+  PublicPrivacidadeRoute: typeof PublicPrivacidadeRoute
 }
 
 const PublicRouteChildren: PublicRouteChildren = {
+  PublicCriarContaRoute: PublicCriarContaRoute,
   PublicEntrarRoute: PublicEntrarRoute,
+  PublicPrivacidadeRoute: PublicPrivacidadeRoute,
 }
 
 const PublicRouteWithChildren =

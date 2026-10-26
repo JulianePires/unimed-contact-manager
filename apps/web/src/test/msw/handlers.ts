@@ -24,6 +24,9 @@ export const sessionUser: User = userSchema.parse({
   email: 'maria@empresa.com',
 });
 
+/** Senha aceita pelo login simulado para `sessionUser`. */
+export const sessionPassword = 'senha-correta-123';
+
 /** Resposta de erro igual à da API: Problem Details com o status do código (docs/05 §5.2). */
 export function problem(code: ErrorCode, title: string, extras: Record<string, unknown> = {}) {
   const status = ERROR_STATUS[code];
@@ -48,6 +51,11 @@ async function parseBody<T extends z.ZodType>(request: Request, schema: T) {
 
 const emptyPage = { data: [], meta: { page: 1, pageSize: 20, total: 0, totalPages: 0 } };
 
+/** Visitante sem sessão (ou sessão expirada): `server.use(unauthenticatedMe)`. */
+export const unauthenticatedMe = http.get(`${API}/auth/me`, () =>
+  problem('UNAUTHENTICATED', 'Sessão expirada'),
+);
+
 /** Cenário padrão: sessão ativa e listas vazias. Cada teste ajusta com `server.use(...)`. */
 export const handlers = [
   http.get(`${API}/auth/me`, () => HttpResponse.json(sessionUser)),
@@ -55,7 +63,8 @@ export const handlers = [
   http.post(`${API}/auth/login`, async ({ request }) => {
     const body = await parseBody(request, loginInputSchema);
     if (!body.ok) return body.response;
-    return body.data.email === sessionUser.email
+    const valid = body.data.email === sessionUser.email && body.data.password === sessionPassword;
+    return valid
       ? HttpResponse.json(sessionUser)
       : problem('INVALID_CREDENTIALS', 'E-mail ou senha inválidos');
   }),
@@ -63,6 +72,9 @@ export const handlers = [
   http.post(`${API}/auth/register`, async ({ request }) => {
     const body = await parseBody(request, registerInputSchema);
     if (!body.ok) return body.response;
+    if (body.data.email === sessionUser.email) {
+      return problem('REGISTRATION_FAILED', 'Não foi possível concluir o cadastro');
+    }
     return HttpResponse.json(
       userSchema.parse({ ...sessionUser, name: body.data.name, email: body.data.email }),
       { status: 201 },

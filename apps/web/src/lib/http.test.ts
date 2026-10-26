@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API, problem, sessionUser } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 
-import { ApiError, internalPath, loginUrl, request } from './http';
+import { ApiError, internalPath, request, sessionExpiredUrl } from './http';
 
 const ECHO = `${API}/echo`;
 
@@ -182,14 +182,16 @@ describe('request: sessão expirada (401)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('leva ao login com a rota atual em redirect', async () => {
+  it('leva ao login avisando a expiração e guardando a rota atual', async () => {
     stubLocation('/contatos', '?q=ana&page=2');
     respondWith(problem('UNAUTHENTICATED', 'Sessão expirada'));
 
     const error = await rejection(request('GET', ECHO));
 
     expect(error.code).toBe('UNAUTHENTICATED');
-    expect(assign).toHaveBeenCalledWith('/entrar?redirect=%2Fcontatos%3Fq%3Dana%26page%3D2');
+    expect(assign).toHaveBeenCalledWith(
+      '/entrar?redirect=%2Fcontatos%3Fq%3Dana%26page%3D2&motivo=sessao-expirada',
+    );
   });
 
   it('não redireciona quando já está no login', async () => {
@@ -221,7 +223,7 @@ describe('request: sessão expirada (401)', () => {
   });
 });
 
-describe('internalPath / loginUrl', () => {
+describe('internalPath / sessionExpiredUrl', () => {
   it.each(['/contatos', '/contatos?q=ana', '/importacoes/123#erros', '/'])('aceita %s', (value) => {
     expect(internalPath(value)).toBe(value);
   });
@@ -240,7 +242,9 @@ describe('internalPath / loginUrl', () => {
   });
 
   it('monta o login com redirect apenas para caminho interno', () => {
-    expect(loginUrl('/contatos?q=ana')).toBe('/entrar?redirect=%2Fcontatos%3Fq%3Dana');
-    expect(loginUrl('//evil.example')).toBe('/entrar');
+    expect(sessionExpiredUrl('/contatos?q=ana')).toBe(
+      '/entrar?redirect=%2Fcontatos%3Fq%3Dana&motivo=sessao-expirada',
+    );
+    expect(sessionExpiredUrl('//evil.example')).toBe('/entrar?motivo=sessao-expirada');
   });
 });

@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 
+import { resetContacts } from './msw/contacts';
 import { server } from './msw/server';
 
 // Rotas carregadas sob demanda: o primeiro acesso transforma o chunk e passa de 1 s com cobertura
@@ -27,6 +28,7 @@ beforeAll(() => {
 afterEach(() => {
   cleanup();
   server.resetHandlers();
+  resetContacts();
 });
 
 afterAll(() => {

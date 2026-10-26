@@ -3,9 +3,20 @@ import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
 
 /** Tabela semântica (docs/06 §6.7): use <TableCaption> e `scope` nos <TableHead>. */
-export function Table({ className, ...props }: ComponentProps<'table'>) {
+export function Table({
+  className,
+  containerProps,
+  ...props
+}: ComponentProps<'table'> & {
+  /** Área de rolagem horizontal: ex. `role="region"` + `tabIndex={0}` para rolar pelo teclado. */
+  containerProps?: ComponentProps<'div'>;
+}) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    <div
+      data-slot="table-container"
+      {...containerProps}
+      className={cn('relative w-full overflow-x-auto', containerProps?.className)}
+    >
       <table
         data-slot="table"
         className={cn('w-full caption-bottom text-sm', className)}

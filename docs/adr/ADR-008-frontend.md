@@ -20,6 +20,7 @@ Versões de referência (out/2026): React 19.3, React Compiler 1.0, Vite 8 (Roll
 | Estado do servidor | TanStack Query                                                                                |
 | Roteamento         | TanStack Router, com search params validados por Zod                                          |
 | Formulários        | TanStack Form + schemas Zod de `packages/contracts`                                           |
+| Tabelas            | TanStack Table v9 (headless), com ordenação e paginação feitas pela API                       |
 | UI                 | shadcn/ui (primitivos Radix) + Tailwind CSS v4                                                |
 | Testes             | Vitest, Testing Library, `user-event`, MSW, `vitest-axe`; Playwright + `@axe-core/playwright` |
 
@@ -44,6 +45,15 @@ Versões de referência (out/2026): React 19.3, React Compiler 1.0, Vite 8 (Roll
 ### Formulários
 
 TanStack Form com validação por Zod (Standard Schema) dos `contracts`: a mesma regra roda no cliente e na API. Erros da API (Problem Details) são mapeados para os campos pelo `code`/`errors[]`. O conflito `MOBILE_BELONGS_TO_INACTIVE_CONTACT` oferece a ação "Reativar contato". Um `412` na edição exibe aviso de alteração concorrente com opção de recarregar.
+
+### Tabelas de listagem
+
+As listagens (contatos, histórico e erros de importação) são compostas com **TanStack Table v9**, que é _headless_: descreve colunas e estado (ordenação, paginação), e a marcação continua sendo dos componentes shadcn/ui.
+
+- **Dados do servidor:** `manualSorting` e `manualPagination`. A API entrega a página já ordenada (`sort`, `page`, `pageSize`, `rowCount = meta.total`); a tabela não reordena nem fatia linhas no cliente.
+- **Estado na URL:** `sorting` e `pagination` são estado controlado, derivado dos search params. Cliques no cabeçalho e na paginação viram navegação; o cache do TanStack Query continua sendo a única cópia dos dados.
+- **Componente genérico** (`components/data-table/`): `DataTable` gera `<caption>`, `th scope="col"`, `aria-sort` com botão nas colunas ordenáveis e `th scope="row"` na coluna marcada com `meta.rowHeader`, dentro de uma região de rolagem horizontal focável. `DataTablePagination` usa a API de paginação da tabela. Cada feature só declara colunas.
+- **Funcionalidades registradas explicitamente** (`tableFeatures({ rowSortingFeature, rowPaginationFeature })`), sem `stockFeatures`, para não levar ao bundle o que não é usado.
 
 ### Acessibilidade (meta: WCAG 2.2 AA)
 
@@ -73,11 +83,14 @@ TanStack Form com validação por Zod (Standard Schema) dos `contracts`: a mesma
 - **Actions nativas (`useActionState`):** menos dependências, mas validação por campo e estado de formulário mais limitados que no TanStack Form.
 - **React Hook Form:** maduro, porém o TanStack Form oferece tipagem mais forte e coerência com o restante do ecossistema TanStack.
 - **React Router v7:** mais difundido, mas sem search params tipados nativamente.
+- **Tabelas escritas à mão (sem biblioteca):** suficientes para uma única lista, mas repetiriam em cada listagem o mapeamento de ordenação, paginação e semântica (`aria-sort`, `scope`). O TanStack Table concentra isso e mantém a coerência com o ecossistema TanStack.
+- **AG Grid / MUI DataGrid:** prontos, porém impõem a própria marcação e estilos (conflitando com shadcn/ui e os tokens validados de contraste) e têm bundle bem maior.
 - **Component library própria:** custo alto para o prazo; Radix já resolve acessibilidade dos primitivos.
 
 ## Consequências
 
 - (+) Menos código de otimização manual; regras de validação únicas; acessibilidade verificada continuamente.
 - (+) Superfície de XSS reduzida (CSP + Trusted Types + ausência de tokens no JS).
-- (−) Ecossistema TanStack (Router/Form) é menos conhecido por parte dos avaliadores. As escolhas ficam justificadas aqui.
+- (−) Ecossistema TanStack (Router/Form/Table) é menos conhecido por parte dos avaliadores. As escolhas ficam justificadas aqui.
+- (−) TanStack Table v9 é uma versão recente (API com `tableFeatures`/`useTable`, diferente da v8); exemplos antigos da comunidade não se aplicam diretamente.
 - (−) Busca não é restaurada por link compartilhado (decisão de privacidade).

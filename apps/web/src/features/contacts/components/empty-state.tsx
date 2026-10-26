@@ -14,10 +14,17 @@ export function EmptyState(props: EmptyStateProps) {
       <div className="grid justify-items-center gap-3 rounded-md border border-border px-4 py-12 text-center">
         <BookUserIcon aria-hidden="true" className="size-8 text-muted-foreground" />
         <h2 className="text-lg font-semibold">Sua agenda ainda está vazia</h2>
-        <p className="text-muted-foreground">Importe uma planilha CSV para trazer seus contatos.</p>
-        <Button asChild variant="secondary">
-          <Link to="/importacoes">Importar contatos</Link>
-        </Button>
+        <p className="text-muted-foreground">
+          Cadastre um contato ou importe uma planilha CSV para trazer vários de uma vez.
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button asChild>
+            <Link to="/contatos/novo">Novo contato</Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link to="/importacoes">Importar contatos</Link>
+          </Button>
+        </div>
       </div>
     );
   }

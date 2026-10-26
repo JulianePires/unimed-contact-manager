@@ -7,10 +7,12 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import {
   createFileRoute,
+  Link,
   type ErrorComponentProps,
   redirect,
   stripSearchParams,
 } from '@tanstack/react-router';
+import { PlusIcon } from 'lucide-react';
 import { Suspense } from 'react';
 import { z } from 'zod';
 
@@ -86,7 +88,15 @@ function ContactsPage() {
     <>
       <title>Contatos · Agenda Unimed</title>
       <div className="grid gap-6">
-        <h1 className="text-2xl font-semibold">Contatos</h1>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h1 className="text-2xl font-semibold">Contatos</h1>
+          <Button asChild>
+            <Link to="/contatos/novo">
+              <PlusIcon aria-hidden="true" />
+              Novo contato
+            </Link>
+          </Button>
+        </div>
         <ContactsToolbar
           search={search.input}
           onSearchChange={search.setInput}

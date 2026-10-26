@@ -75,6 +75,8 @@ export interface RequestOptions {
   /** JSON ou FormData (upload); FormData define o próprio content-type. */
   body?: unknown;
   signal?: AbortSignal;
+  /** Headers extras da operação (ex.: `If-Match` na edição, ADR-004). */
+  headers?: Record<string, string>;
   /** `false` quando quem chama trata o 401 (ex.: o guard de rota faz o redirect). */
   redirectOnUnauthorized?: boolean;
 }
@@ -100,6 +102,7 @@ export async function request<T>(
   {
     body,
     signal,
+    headers: extraHeaders,
     redirectOnUnauthorized = true,
     schema,
   }: RequestOptions & { schema?: z.ZodType<T> } = {},
@@ -109,6 +112,7 @@ export async function request<T>(
     Accept: 'application/json',
     ...(SAFE_METHODS.has(method) ? {} : CSRF_HEADER),
     ...(body === undefined || isForm ? {} : { 'Content-Type': 'application/json' }),
+    ...extraHeaders,
   };
   const response = await fetch(path, {
     method,

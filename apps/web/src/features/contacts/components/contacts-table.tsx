@@ -6,6 +6,7 @@ import {
   type SortingState,
   useTable,
 } from '@tanstack/react-table';
+import { Link } from '@tanstack/react-router';
 
 import { DataTable, serverTableFeatures } from '@/components/data-table/data-table';
 import { DataTablePagination } from '@/components/data-table/data-table-pagination';
@@ -28,6 +29,15 @@ const columns = column.columns([
   column.accessor('name', {
     header: 'Nome',
     enableSorting: true,
+    cell: ({ row, getValue }) => (
+      <Link
+        to="/contatos/$id"
+        params={{ id: row.original.id }}
+        className="underline-offset-2 hover:underline"
+      >
+        {getValue()}
+      </Link>
+    ),
     meta: { rowHeader: true },
   }),
   column.accessor('email', {

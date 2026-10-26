@@ -109,6 +109,21 @@ export function createContactsRepository(db: Executor) {
       }));
     },
 
+    /**
+     * Importação em lote (ADR-002): a mesma constraint do cadastro decide. Celular já existente na
+     * agenda, ativo ou inativo, é ignorado sem erro e sem alterar o contato (RN11).
+     * Devolve quantos foram inseridos; os demais do lote foram ignorados.
+     */
+    async insertIgnoringExisting(rows: (NewContact & { mobileE164: string })[]): Promise<number> {
+      if (rows.length === 0) return 0;
+      const inserted = await db
+        .insert(contacts)
+        .values(rows)
+        .onConflictDoNothing({ target: [contacts.ownerId, contacts.mobileE164] })
+        .returning({ id: contacts.id });
+      return inserted.length;
+    },
+
     /** Edição otimista (ADR-004): só aplica se a versão ainda for a lida, e a incrementa. */
     async update(
       ownerId: string,

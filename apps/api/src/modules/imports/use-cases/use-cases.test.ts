@@ -42,6 +42,12 @@ function fakeRepository(overrides: Partial<ImportsRepository> = {}): ImportsRepo
     findById: () => Promise.resolve(undefined),
     list: () => Promise.resolve({ imports: [row()], total: 1 }),
     delete: () => Promise.resolve(false),
+    findForProcessing: () => Promise.reject(new Error('não usado pela API')),
+    startProcessing: () => Promise.reject(new Error('não usado pela API')),
+    setTotalRows: () => Promise.reject(new Error('não usado pela API')),
+    recordBatch: () => Promise.reject(new Error('não usado pela API')),
+    finish: () => Promise.reject(new Error('não usado pela API')),
+    purgeErrorRawBefore: () => Promise.reject(new Error('não usado pela API')),
     ...overrides,
   };
 }

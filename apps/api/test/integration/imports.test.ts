@@ -10,6 +10,7 @@ import { createDatabase, type Database } from '@/shared/db/client';
 import { withTransaction } from '@/shared/db/transaction';
 import { contacts, importErrors, importFiles, imports } from '@/shared/db/schema';
 import { type PgBossQueue, startPgBossQueue } from '@/shared/queue/pg-boss-adapter';
+import { startJobWorker } from '@/start-worker';
 
 import { buildTestApp, CSRF_HEADERS, registerUser, type TestApp } from '../helpers/app';
 import { startMigratedPostgres, truncateAll } from '../helpers/db-container';
@@ -28,7 +29,9 @@ const CSV = readFileSync(new URL('../fixtures/utf8-virgula.csv', import.meta.url
 beforeAll(async () => {
   container = await startMigratedPostgres();
   db = createDatabase(container.getConnectionUri());
-  queue = await startPgBossQueue(container.getConnectionUri());
+  queue = await startPgBossQueue(container.getConnectionUri(), (error) => {
+    throw error;
+  });
   app = await buildTestApp(db, { jobQueue: queue.queue });
 });
 
@@ -247,6 +250,32 @@ describe('fila transacional com pg-boss (ADR-003)', () => {
     await withTransaction(db.orm, (tx) => queue.queue.enqueue(tx, 'process-import', { importId }));
 
     expect(await jobsFor(importId)).toBe(1);
+  });
+});
+
+describe('worker com pg-boss (RF16, ADR-003)', () => {
+  it('dado envio pela API, então o worker consome o job, conclui e apaga o arquivo', async () => {
+    const worker = await startJobWorker(
+      { DATABASE_URL: container.getConnectionUri(), IMPORT_ERRORS_RETENTION_DAYS: 30 },
+      db,
+      (error) => {
+        throw error;
+      },
+    );
+    try {
+      const created = importSchema.parse((await upload(alice.cookie)).json());
+
+      await expect
+        .poll(async () => importSchema.parse((await get(alice.cookie, `/${created.id}`)).json()), {
+          timeout: 20_000,
+          interval: 250,
+        })
+        .toMatchObject({ status: 'COMPLETED', createdCount: 3, processedRows: 3 });
+      expect(await db.orm.select().from(importFiles)).toHaveLength(0);
+      expect(await db.orm.select().from(contacts)).toHaveLength(3);
+    } finally {
+      await worker.stop();
+    }
   });
 });
 

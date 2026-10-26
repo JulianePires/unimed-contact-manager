@@ -7,13 +7,15 @@ const MIGRATIONS_LOCK_KEY = 7_242_026;
 export interface MigrationOptions {
   connectionString: string;
   migrationsFolder: string;
+  connectionTimeoutMillis?: number;
 }
 
 export async function runMigrations({
   connectionString,
   migrationsFolder,
+  connectionTimeoutMillis = 10_000,
 }: MigrationOptions): Promise<void> {
-  const client = new pg.Client({ connectionString });
+  const client = new pg.Client({ connectionString, connectionTimeoutMillis });
   await client.connect();
   try {
     await client.query('SELECT pg_advisory_lock($1)', [MIGRATIONS_LOCK_KEY]);

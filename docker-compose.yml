@@ -6,7 +6,11 @@ x-app: &app
   init: true
   environment: &app-env
     NODE_ENV: production
-    DATABASE_URL: postgres://${POSTGRES_USER:-contatos}:${POSTGRES_PASSWORD:-contatos}@postgres:5432/${POSTGRES_DB:-contatos}
+    # Credenciais fora da URL: o pg lê PGUSER/PGPASSWORD/PGDATABASE sem exigir percent-encoding
+    DATABASE_URL: postgres://postgres:5432/
+    PGUSER: ${POSTGRES_USER:-contatos}
+    PGPASSWORD: ${POSTGRES_PASSWORD:-contatos}
+    PGDATABASE: ${POSTGRES_DB:-contatos}
     LOG_LEVEL: ${LOG_LEVEL:-info}
 
 services:

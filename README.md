@@ -43,6 +43,12 @@ pnpm test:e2e            # Playwright
 
 > As credenciais demo são criadas apenas pelo seed de desenvolvimento/avaliação (a implementar).
 
+## Deploy (Render)
+
+O [`render.yaml`](render.yaml) declara a variante free: um Web Service Docker (API + SPA, migrations na inicialização) e um Postgres free. No dashboard do Render, use **New → Blueprint**, selecione o repositório e a branch `main` e aplique. O deploy automático só ocorre quando o CI da `main` passa.
+
+> **O Postgres free expira 30 dias após a criação e os dados são apagados.** Para manter os dados, faça upgrade do plano antes do prazo (`plan: 0.1c-256mb` ou maior no `render.yaml`) ou exporte-os com `pg_dump "$EXTERNAL_DATABASE_URL" -Fc -f agenda.dump` (libere seu IP em `ipAllowList` para a conexão externa) e restaure num banco novo com `pg_restore`.
+
 ## Estado atual
 
 Base de infraestrutura pronta; as funcionalidades abaixo são o escopo planejado.

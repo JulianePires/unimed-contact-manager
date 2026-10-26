@@ -15,7 +15,9 @@ db.onIdleClientError((err) => {
 });
 
 await db.ping();
-log.info('worker iniciado');
+log.info(
+  'worker iniciado sem filas registradas: os consumidores do pg-boss chegam com a importação',
+);
 
 const heartbeat = setInterval(() => {
   db.ping().catch((err: unknown) => {

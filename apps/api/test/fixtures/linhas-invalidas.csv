@@ -1,0 +1,12 @@
+nome;email;celular;telefone
+Válida da Silva;valida@empresa.com;(81) 99999-0010;
+A;joao@;8133330000;
+;;;
+;sem-nome@empresa.com;81999990011;
+Fixo no Celular;fixo@empresa.com;(81) 3333-0012;
+Telefone Ruim;ruim@empresa.com;81999990013;123
+Colunas a Menos;menos@empresa.com
+
+"Quebra
+de Linha";quebra@empresa.com;81999990014;
+=HYPERLINK("http://x");formula@empresa.com;81999990015;

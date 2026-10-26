@@ -40,7 +40,7 @@ services:
       - key: SESSION_COOKIE_NAME
         value: __Host-sid
       - key: LOG_LEVEL
-        value: info
+        value: error
 
   - type: worker
     name: agenda-unimed-worker
@@ -62,4 +62,4 @@ services:
       - key: WORKER_MODE
         value: standalone
       - key: LOG_LEVEL
-        value: info
+        value: error

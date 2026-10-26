@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatPhone, normalizeMobile, normalizePhone } from './phone';
+import {
+  formatPhone,
+  formatPhoneInput,
+  normalizeMobile,
+  normalizePhone,
+  phoneInputDigits,
+  phoneInputValue,
+} from './phone';
 
 describe('normalizeMobile (RN02, ADR-001)', () => {
   it.each([
@@ -60,5 +67,34 @@ describe('formatPhone', () => {
     ['não é telefone', 'não é telefone'],
   ])('formata %s para exibição como %s', (e164, expected) => {
     expect(formatPhone(e164)).toBe(expected);
+  });
+});
+
+describe('campo de telefone', () => {
+  it.each([
+    ['(81) 99999-0000', '81999990000'],
+    ['+55 81 99999-0000', '+5581999990000'],
+    ['  +1 415', '+1415'],
+    ['abc', ''],
+  ])('dado %s digitado, então o valor bruto é %s', (input, expected) => {
+    expect(phoneInputDigits(input)).toBe(expected);
+  });
+
+  it.each([
+    ['', ''],
+    ['81', '(81)'],
+    ['8199999', '(81) 99999'],
+    ['81999990000', '(81) 99999-0000'],
+    ['+5581999990000', '+55 81 99999 0000'],
+  ])('dado %s, então exibe %s enquanto se digita', (raw, expected) => {
+    expect(formatPhoneInput(raw)).toBe(expected);
+  });
+
+  it.each([
+    ['+5581999990000', '81999990000'],
+    ['+14155552671', '+14155552671'],
+    [null, ''],
+  ])('dado %s salvo, então o campo de edição começa com %s', (e164, expected) => {
+    expect(phoneInputValue(e164)).toBe(expected);
   });
 });

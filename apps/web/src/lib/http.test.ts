@@ -67,6 +67,15 @@ describe('request: cabeçalhos', () => {
     fetchSpy.mockRestore();
   });
 
+  it('envia os headers extras da operação', async () => {
+    const received = captureRequests();
+
+    await request('PATCH', ECHO, { body: { name: 'Ana' }, headers: { 'If-Match': '"v3"' } });
+
+    expect(received[0]?.headers.get('If-Match')).toBe('"v3"');
+    expect(received[0]?.headers.get('X-Requested-With')).toBe('fetch');
+  });
+
   it('envia FormData sem fixar content-type (o navegador define o boundary)', async () => {
     const received = captureRequests();
     const form = new FormData();

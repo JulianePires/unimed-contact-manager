@@ -1,4 +1,4 @@
-import { type PhoneNumberType, parsePhoneNumberFromString } from 'libphonenumber-js/max';
+import { AsYouType, type PhoneNumberType, parsePhoneNumberFromString } from 'libphonenumber-js/max';
 
 /** Região assumida quando o número vem sem código do país (ADR-001). */
 export const DEFAULT_PHONE_REGION = 'BR';
@@ -51,4 +51,22 @@ export function formatPhone(e164: string): string {
   return parsed.country === DEFAULT_PHONE_REGION
     ? parsed.formatNational()
     : parsed.formatInternational();
+}
+
+/** Valor bruto de um campo de telefone: só os dígitos, com o `+` inicial se a pessoa digitou. */
+export function phoneInputDigits(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  return value.trimStart().startsWith('+') ? `+${digits}` : digits;
+}
+
+/** Máscara de exibição enquanto se digita (`81999990000` → `(81) 99999-0000`). */
+export function formatPhoneInput(raw: string): string {
+  return raw ? new AsYouType(DEFAULT_PHONE_REGION).input(raw) : '';
+}
+
+/** Valor inicial do campo ao editar: número nacional para o Brasil, E.164 para os demais. */
+export function phoneInputValue(e164: string | null): string {
+  if (!e164) return '';
+  const parsed = parsePhoneNumberFromString(e164);
+  return parsed?.country === DEFAULT_PHONE_REGION ? parsed.nationalNumber : e164;
 }

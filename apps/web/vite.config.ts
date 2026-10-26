@@ -4,14 +4,17 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react, { reactCompilerPreset } from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
+const isVitest = process.env['VITEST'] !== undefined;
+
 export default defineConfig({
   plugins: [
     // Gera src/routeTree.gen.ts; precisa vir antes do plugin do React
+    // Sob o Vitest, rotas sem divisão em chunks (carregar cada chunk no primeiro acesso deixa os
+    // testes lentos e instáveis com cobertura) e sem HMR (o código injetado distorce a cobertura)
     tanstackRouter({
       target: 'react',
       autoCodeSplitting: true,
-      // Sem HMR sob o Vitest: o código injetado nas rotas não é do app e distorce a cobertura
-      codeSplittingOptions: { addHmr: process.env['VITEST'] === undefined },
+      codeSplittingOptions: isVitest ? { addHmr: false, defaultBehavior: [] } : {},
     }),
     react(),
     babel({ presets: [reactCompilerPreset()] }),

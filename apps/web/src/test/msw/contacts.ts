@@ -1,12 +1,16 @@
 import {
   type Contact,
   contactSchema,
+  createContactInputSchema,
   formatPhone,
   listContactsQuerySchema,
   pageMeta,
   pageSchema,
+  updateContactInputSchema,
 } from '@contatos/contracts';
 import { HttpResponse, http } from 'msw';
+
+import { parseBody, problem } from './problem';
 
 const CONTACTS = '/api/v1/contacts';
 
@@ -74,6 +78,14 @@ export function setContacts(next: Contact[]): void {
   contacts = next;
 }
 
+/** Simula uma edição feita em outra sessão: nova versão no "servidor" (ADR-004). */
+export function editElsewhere(name: string, changes: Partial<Contact>): Contact {
+  const current = findContact(name);
+  const edited = { ...current, ...changes, version: current.version + 1 };
+  contacts = contacts.map((contact) => (contact.id === current.id ? edited : contact));
+  return edited;
+}
+
 export function findContact(name: string): Contact {
   const contact = contacts.find((item) => item.name === name);
   if (!contact) throw new Error(`Contato de teste inexistente: ${name}`);
@@ -132,7 +144,114 @@ export const contactHandlers = [
 
   http.put(`${CONTACTS}/:id/favorite`, ({ params }) => setFavorite(String(params['id']), true)),
   http.delete(`${CONTACTS}/:id/favorite`, ({ params }) => setFavorite(String(params['id']), false)),
+
+  http.get(`${CONTACTS}/:id`, ({ params }) => {
+    const contact = byId(params['id']);
+    return contact ? withEtag(contact) : notFound();
+  }),
+
+  http.post(CONTACTS, async ({ request }) => {
+    const body = await parseBody(request, createContactInputSchema);
+    if (!body.ok) return body.response;
+    const conflict = mobileConflict(body.data.mobile);
+    if (conflict) return conflict;
+    const now = new Date().toISOString();
+    const contact = contactSchema.parse({
+      id: crypto.randomUUID(),
+      ...body.data,
+      mobileFormatted: formatPhone(body.data.mobile),
+      phoneFormatted: body.data.phone ? formatPhone(body.data.phone) : null,
+      isFavorite: false,
+      status: 'active',
+      deactivatedAt: null,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+    });
+    contacts = [...contacts, contact];
+    return withEtag(contact, 201);
+  }),
+
+  http.patch(`${CONTACTS}/:id`, async ({ params, request }) => {
+    const current = byId(params['id']);
+    if (!current) return notFound();
+    const ifMatch = request.headers.get('if-match');
+    if (!ifMatch) return problem('PRECONDITION_REQUIRED', 'Informe a versão do contato');
+    if (ifMatch !== etag(current)) {
+      return problem('CONTACT_MODIFIED', 'O contato foi alterado em outra sessão');
+    }
+    const body = await parseBody(request, updateContactInputSchema);
+    if (!body.ok) return body.response;
+    const conflict = body.data.mobile ? mobileConflict(body.data.mobile, current.id) : undefined;
+    if (conflict) return conflict;
+    const { phone, ...changes } = body.data;
+    const updated = contactSchema.parse({
+      ...current,
+      ...Object.fromEntries(Object.entries(changes).filter(([, value]) => value !== undefined)),
+      ...(phone === undefined ? {} : { phone, phoneFormatted: phone ? formatPhone(phone) : null }),
+      ...(changes.mobile ? { mobileFormatted: formatPhone(changes.mobile) } : {}),
+      version: current.version + 1,
+      updatedAt: new Date().toISOString(),
+    });
+    contacts = contacts.map((contact) => (contact.id === current.id ? updated : contact));
+    return withEtag(updated);
+  }),
+
+  http.post(`${CONTACTS}/:id/deactivate`, ({ params }) => setStatus(params['id'], 'inactive')),
+  http.post(`${CONTACTS}/:id/reactivate`, ({ params }) => setStatus(params['id'], 'active')),
+
+  http.delete(`${CONTACTS}/:id`, ({ params }) => {
+    const contact = byId(params['id']);
+    if (!contact) return notFound();
+    if (contact.status === 'active') {
+      return problem('CONTACT_MUST_BE_INACTIVE', 'Inative o contato antes de eliminar os dados');
+    }
+    contacts = contacts.filter((item) => item.id !== contact.id);
+    return new HttpResponse(null, { status: 204 });
+  }),
 ];
+
+function byId(id: unknown): Contact | undefined {
+  return contacts.find((contact) => contact.id === id);
+}
+
+function etag(contact: Contact): string {
+  return `"v${String(contact.version)}"`;
+}
+
+function withEtag(contact: Contact, status = 200) {
+  return HttpResponse.json(contact, { status, headers: { etag: etag(contact) } });
+}
+
+/** Mesma resposta para inexistente, de outra conta ou eliminado (docs/05 §5.2). */
+function notFound() {
+  return problem('NOT_FOUND', 'Contato não encontrado');
+}
+
+/** Unicidade do celular na agenda, inclusive entre inativos (ADR-001). */
+function mobileConflict(mobile: string, exceptId?: string) {
+  const owner = contacts.find((contact) => contact.mobile === mobile && contact.id !== exceptId);
+  if (!owner) return undefined;
+  return owner.status === 'active'
+    ? problem('MOBILE_ALREADY_EXISTS', 'Celular já cadastrado', { contactId: owner.id })
+    : problem('MOBILE_BELONGS_TO_INACTIVE_CONTACT', 'Celular de contato inativo', {
+        contactId: owner.id,
+      });
+}
+
+function setStatus(id: unknown, status: Contact['status']) {
+  const current = byId(id);
+  if (!current) return notFound();
+  const updated: Contact = {
+    ...current,
+    status,
+    deactivatedAt:
+      status === 'inactive' ? (current.deactivatedAt ?? new Date().toISOString()) : null,
+    version: current.version + 1,
+  };
+  contacts = contacts.map((contact) => (contact.id === current.id ? updated : contact));
+  return HttpResponse.json(updated);
+}
 
 function setFavorite(id: string, isFavorite: boolean) {
   contacts = contacts.map((contact) => (contact.id === id ? { ...contact, isFavorite } : contact));

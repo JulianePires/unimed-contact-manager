@@ -1,8 +1,6 @@
-# Blueprint do Render (docs/03 §3.6, ADR-010). Variante FREE ativa: um Web Service e o Postgres free,
-# com migrations na inicialização sob advisory lock. A variante paga está comentada abaixo.
-#
-# ATENÇÃO: o Postgres free expira 30 dias após a criação e os dados são apagados. Antes disso, faça
-# upgrade do plano (`plan: 0.1c-256mb` ou maior) ou exporte os dados com pg_dump (README › Deploy).
+# Blueprint do Render (docs/03 §3.6, ADR-010).
+# WebService e Worker para a API da Agenda Unimed, com banco de dados PostgreSQL.
+
 databases:
   - name: agenda-unimed-db
     plan: 0.1c-256mb

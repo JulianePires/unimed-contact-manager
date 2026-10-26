@@ -1,4 +1,4 @@
-import type { FieldError } from '@contatos/contracts';
+import type { FieldError, ImportStatus } from '@contatos/contracts';
 import {
   bigint,
   char,
@@ -25,7 +25,7 @@ export const imports = pgTable(
       .references(() => users.id),
     fileName: varchar('file_name', { length: 255 }).notNull(),
     fileSha256: char('file_sha256', { length: 64 }).notNull(),
-    status: varchar('status', { length: 32 }).notNull().default('PENDING'),
+    status: varchar('status', { length: 32 }).$type<ImportStatus>().notNull().default('PENDING'),
     totalRows: counter('total_rows'),
     processedRows: counter('processed_rows'),
     createdCount: counter('created_count'),

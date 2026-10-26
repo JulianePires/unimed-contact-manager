@@ -1,36 +1,18 @@
 import { z } from 'zod';
 
-/** Códigos de erro da API (docs/05 §5.2). */
-export const ERROR_CODES = [
-  'BAD_REQUEST',
-  'UNAUTHENTICATED',
-  'INVALID_CREDENTIALS',
-  'CSRF_HEADER_MISSING',
-  'NOT_FOUND',
-  'MOBILE_ALREADY_EXISTS',
-  'MOBILE_BELONGS_TO_INACTIVE_CONTACT',
-  'CONTACT_MUST_BE_INACTIVE',
-  'CONTACT_ANONYMIZED',
-  'IMPORT_ALREADY_EXISTS',
-  'REGISTRATION_FAILED',
-  'CONTACT_MODIFIED',
-  'FILE_TOO_LARGE',
-  'UNSUPPORTED_FILE_TYPE',
-  'VALIDATION_ERROR',
-  'PRECONDITION_REQUIRED',
-  'RATE_LIMITED',
-  'INTERNAL_ERROR',
-  'SERVICE_UNAVAILABLE',
-] as const;
+import {
+  type ErrorCode,
+  errorCodeSchema,
+  FieldErrorCode,
+  fieldErrorCodeSchema,
+} from './error-codes';
 
-export const errorCodeSchema = z.enum(ERROR_CODES);
-export type ErrorCode = z.infer<typeof errorCodeSchema>;
-
-/** Item de `errors[]` em respostas 422. */
+/** Item de `errors[]` em respostas 422; `firstLine` acompanha `DUPLICATE_IN_FILE`. */
 export const fieldErrorSchema = z.object({
   field: z.string(),
-  code: z.string(),
+  code: fieldErrorCodeSchema,
   message: z.string(),
+  firstLine: z.int().min(2).optional(),
 });
 export type FieldError = z.infer<typeof fieldErrorSchema>;
 
@@ -50,4 +32,25 @@ export type ProblemDetails = z.infer<typeof problemDetailsSchema>;
 /** URI do `type` a partir do código: `MOBILE_ALREADY_EXISTS` → `…/problems/mobile-already-exists`. */
 export function problemType(code: ErrorCode): string {
   return `https://contatos.app/problems/${code.toLowerCase().replaceAll('_', '-')}`;
+}
+
+function fieldErrorCode(issue: z.core.$ZodIssue): FieldErrorCode {
+  const parsed = fieldErrorCodeSchema.safeParse(issue.code === 'custom' && issue.params?.['code']);
+  if (parsed.success) return parsed.data;
+  return issue.code === 'invalid_type' ? FieldErrorCode.REQUIRED : FieldErrorCode.INVALID_VALUE;
+}
+
+/** Converte a falha de validação de um schema dos contracts em `errors[]` do 422. */
+export function toFieldErrors(error: z.core.$ZodError): FieldError[] {
+  return error.issues.flatMap((issue) => {
+    const field = issue.path.join('.');
+    if (issue.code === 'unrecognized_keys') {
+      return issue.keys.map((key) => ({
+        field: field ? `${field}.${key}` : key,
+        code: FieldErrorCode.UNKNOWN_FIELD,
+        message: 'Campo não permitido.',
+      }));
+    }
+    return [{ field, code: fieldErrorCode(issue), message: issue.message }];
+  });
 }

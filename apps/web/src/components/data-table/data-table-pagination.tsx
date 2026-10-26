@@ -19,36 +19,41 @@ export const PAGE_SIZES = [10, 20, 50, 100] as const;
 /** Tamanho da página e navegação entre páginas, lidos e alterados pela API da tabela. */
 export function DataTablePagination<TData extends RowData>({
   table,
+  pageSizeSelect = true,
 }: {
   table: ServerTable<TData>;
+  /** `false` quando o tamanho da página é fixo (ex.: não faz parte da URL). */
+  pageSizeSelect?: boolean;
 }) {
   const sizeId = useId();
   const { pageIndex, pageSize } = table.state.pagination;
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
-      <div className="flex items-center gap-2">
-        <Label htmlFor={sizeId} className="whitespace-nowrap">
-          Por página
-        </Label>
-        <Select
-          value={String(pageSize)}
-          onValueChange={(value) => {
-            table.setPageSize(Number(value));
-          }}
-        >
-          <SelectTrigger id={sizeId} className="w-20">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PAGE_SIZES.map((size) => (
-              <SelectItem key={size} value={String(size)}>
-                {size}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {pageSizeSelect && (
+        <div className="flex items-center gap-2">
+          <Label htmlFor={sizeId} className="whitespace-nowrap">
+            Por página
+          </Label>
+          <Select
+            value={String(pageSize)}
+            onValueChange={(value) => {
+              table.setPageSize(Number(value));
+            }}
+          >
+            <SelectTrigger id={sizeId} className="w-20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PAGE_SIZES.map((size) => (
+                <SelectItem key={size} value={String(size)}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <nav aria-label="Paginação" className="flex items-center gap-2">
         <Button
           variant="secondary"

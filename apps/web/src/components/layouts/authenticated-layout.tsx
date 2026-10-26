@@ -8,14 +8,15 @@ import { UserMenu, type UserMenuProps } from './user-menu';
 /** Área autenticada: cabeçalho com marca, abas e conta; conteúdo da rota e rodapé. */
 export function AuthenticatedLayout({
   children,
+  importsInProgress = false,
   ...account
-}: UserMenuProps & { children: ReactNode }) {
+}: UserMenuProps & { children: ReactNode; importsInProgress?: boolean }) {
   return (
     <div className="flex min-h-dvh flex-col">
       <AppHeader>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
           <Brand to="/contatos" />
-          <NavTabs />
+          <NavTabs importsInProgress={importsInProgress} />
         </div>
         <UserMenu {...account} />
       </AppHeader>

@@ -10,6 +10,8 @@ import { createAuthenticate, requireCsrfHeader } from '@/modules/auth/hooks';
 import { createSessionsRepository } from '@/modules/auth/repositories/sessions';
 import { createUsersRepository } from '@/modules/auth/repositories/users';
 import { type AuthConfig, authRoutes } from '@/modules/auth/routes';
+import { createContactsRepository } from '@/modules/contacts/repository';
+import { CONTACTS_PATH, contactsRoutes } from '@/modules/contacts/routes';
 import type { Database } from '@/shared/db/client';
 import { AppError, toProblemDetails } from '@/shared/errors';
 import { healthRoutes } from '@/shared/http/health';
@@ -91,6 +93,11 @@ export async function buildApp({
     ...auth,
     authenticate,
     now,
+  });
+  await app.register(contactsRoutes, {
+    prefix: CONTACTS_PATH,
+    contacts: createContactsRepository(db.orm),
+    authenticate,
   });
 
   return app;

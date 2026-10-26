@@ -1,4 +1,50 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+ * Tokens da Agenda Unimed: somente tema escuro. Cada par texto/fundo usado pelos componentes é
+ * verificado contra WCAG 2.2 AA em src/theme.test.ts (texto ≥ 4,5:1; contornos e foco ≥ 3:1).
+ */
+@theme inline {
+  --color-background: var(--color-zinc-950);
+  --color-surface: var(--color-zinc-900);
+  --color-surface-raised: var(--color-zinc-800);
+  --color-foreground: var(--color-zinc-50);
+  --color-muted-foreground: var(--color-zinc-400);
+
+  /* Separadores decorativos (sem exigência de contraste) e contorno de controles (≥ 3:1) */
+  --color-border: var(--color-zinc-800);
+  --color-input: var(--color-zinc-500);
+  --color-ring: var(--color-emerald-400);
+
+  --color-primary: var(--color-emerald-500);
+  --color-primary-hover: var(--color-emerald-400);
+  --color-primary-foreground: var(--color-emerald-950);
+
+  --color-accent: var(--color-violet-400);
+  --color-warning: var(--color-amber-400);
+  --color-warning-foreground: var(--color-amber-950);
+
+  /* rose-500 não atinge 4,5:1 como fundo de texto: o sólido é rose-400; rose-500 fica para bordas */
+  --color-danger: var(--color-rose-400);
+  --color-danger-hover: var(--color-rose-300);
+  --color-danger-border: var(--color-rose-500);
+  --color-danger-foreground: var(--color-rose-950);
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -7,8 +7,8 @@ export const Route = createFileRoute('/')({
 function HomePage() {
   return (
     <>
-      <title>Gerenciador de Contatos</title>
-      <h1 className="text-2xl font-semibold">Gerenciador de Contatos</h1>
+      <title>Agenda Unimed</title>
+      <h1 className="text-2xl font-semibold">Agenda Unimed</h1>
     </>
   );
 }

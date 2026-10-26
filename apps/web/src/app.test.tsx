@@ -11,7 +11,7 @@ describe('layout raiz', () => {
     renderRoute('/');
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Gerenciador de Contatos' }),
+      await screen.findByRole('heading', { level: 1, name: 'Agenda Unimed' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('main')).toHaveAttribute('id', 'conteudo');
   });
@@ -41,7 +41,7 @@ describe('layout raiz', () => {
     await router.navigate({ to: '/' });
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Gerenciador de Contatos' }),
+      await screen.findByRole('heading', { level: 1, name: 'Agenda Unimed' }),
     ).toBeInTheDocument();
   });
 
@@ -57,7 +57,7 @@ describe('layout raiz', () => {
   });
 
   it.each([
-    ['página inicial', '/', 'Gerenciador de Contatos'],
+    ['página inicial', '/', 'Agenda Unimed'],
     ['página de não encontrado', '/rota-que-nao-existe', 'Página não encontrada'],
   ])('mantém a %s ao navegar para uma âncora na mesma rota', async (_, path, heading) => {
     const { router } = renderRoute(path);

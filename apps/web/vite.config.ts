@@ -17,6 +17,7 @@ export default defineConfig({
     babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),
   ],
+  resolve: { tsconfigPaths: true },
   server: {
     // Mesma origem em desenvolvimento: /api vai para a API (docs/03)
     proxy: { '/api': 'http://localhost:3000' },

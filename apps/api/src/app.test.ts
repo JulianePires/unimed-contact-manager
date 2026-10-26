@@ -76,6 +76,19 @@ describe('erros', () => {
     });
   });
 
+  it('rota autenticada sem cookie responde 401 usando o relógio padrão', async () => {
+    const server = await appWith(() => Promise.resolve());
+
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/v1/auth/logout',
+      headers: { 'x-requested-with': 'fetch' },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(problemDetailsSchema.parse(response.json())).toMatchObject({ code: 'UNAUTHENTICATED' });
+  });
+
   it('aplica os headers de segurança do helmet', async () => {
     const server = await appWith(() => Promise.resolve());
 

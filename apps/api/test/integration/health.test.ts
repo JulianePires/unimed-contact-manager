@@ -10,10 +10,12 @@ let container: StartedPostgreSqlContainer;
 let db: Database;
 let app: TestApp;
 let containerStopped = false;
+const idleClientErrors: Error[] = [];
 
 beforeAll(async () => {
   container = await startMigratedPostgres();
   db = createDatabase(container.getConnectionUri());
+  db.onIdleClientError((error) => idleClientErrors.push(error));
   app = await buildTestApp(db);
 });
 
@@ -40,5 +42,9 @@ describe('GET /api/health/ready', () => {
     expect(response.statusCode).toBe(503);
     expect(response.headers['content-type']).toContain('application/problem+json');
     expect(response.json()).toMatchObject({ code: 'SERVICE_UNAVAILABLE' });
+  });
+
+  it('dado o banco derrubado, então a conexão ociosa perdida é reportada sem derrubar o processo', async () => {
+    await expect.poll(() => idleClientErrors.length).toBeGreaterThan(0);
   });
 });

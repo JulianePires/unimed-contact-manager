@@ -22,6 +22,11 @@ export interface AppDeps {
   webRoot?: string | undefined;
 }
 
+function pathOf(url: string): string {
+  const queryStart = url.indexOf('?');
+  return queryStart === -1 ? url : url.slice(0, queryStart);
+}
+
 function isSpaRoute(request: FastifyRequest, path: string): boolean {
   if (request.method !== 'GET' && request.method !== 'HEAD') return false;
   if (path === '/api' || path.startsWith('/api/')) return false;
@@ -44,15 +49,16 @@ export async function buildApp({
   app.addHook('onRequest', requireCsrfHeader);
 
   app.setErrorHandler((error, request, reply) => {
-    const instance = request.url.split('?', 1)[0] ?? request.url;
-    const problem = toProblemDetails(error, { instance, requestId: request.id });
+    const problem = toProblemDetails(error, {
+      instance: pathOf(request.url),
+      requestId: request.id,
+    });
     if (problem.status >= 500) request.log.error({ err: error }, problem.title);
     return reply.status(problem.status).type('application/problem+json').send(problem);
   });
 
   app.setNotFoundHandler((request, reply) => {
-    const path = request.url.split('?', 1)[0] ?? request.url;
-    if (webRoot !== undefined && isSpaRoute(request, path)) {
+    if (webRoot !== undefined && isSpaRoute(request, pathOf(request.url))) {
       return reply.sendFile('index.html');
     }
     throw new AppError(404, 'NOT_FOUND', 'Recurso não encontrado');

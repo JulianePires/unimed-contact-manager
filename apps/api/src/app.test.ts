@@ -14,7 +14,13 @@ const env = loadEnv({ DATABASE_URL: 'postgres://localhost:5432/sem-conexao' });
 const { orm } = createDatabase(env.DATABASE_URL);
 
 function build(ping: () => Promise<void>, webRoot?: string) {
-  return buildApp({ db: { ping, orm }, auth: authConfigFromEnv(env), webRoot });
+  return buildApp({
+    db: { ping, orm },
+    auth: authConfigFromEnv(env),
+    jobQueue: { enqueue: () => Promise.resolve() },
+    importMaxBytes: env.IMPORT_MAX_BYTES,
+    webRoot,
+  });
 }
 
 type App = Awaited<ReturnType<typeof buildApp>>;

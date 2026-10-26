@@ -25,6 +25,7 @@ const app = await buildApp({
   jobQueue: queue.queue,
   importMaxBytes: env.IMPORT_MAX_BYTES,
   docs: env.NODE_ENV !== 'production',
+  production: env.NODE_ENV === 'production',
   logger: loggerOptions(env),
   webRoot: hasWeb ? webRoot : undefined,
 });

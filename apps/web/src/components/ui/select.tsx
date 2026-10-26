@@ -1,4 +1,5 @@
 import { CheckIcon, ChevronDownIcon } from 'lucide-react';
+import { getNonce } from 'get-nonce';
 import { Select as SelectPrimitive } from 'radix-ui';
 import type { ComponentProps } from 'react';
 
@@ -47,7 +48,11 @@ export function SelectContent({
         )}
         {...props}
       >
-        <SelectPrimitive.Viewport className="p-1 data-[position=popper]:w-full data-[position=popper]:min-w-(--radix-select-trigger-width)">
+        {/* O <style> do viewport precisa do nonce da CSP (ADR-008) */}
+        <SelectPrimitive.Viewport
+          nonce={getNonce()}
+          className="p-1 data-[position=popper]:w-full data-[position=popper]:min-w-(--radix-select-trigger-width)"
+        >
           {children}
         </SelectPrimitive.Viewport>
       </SelectPrimitive.Content>

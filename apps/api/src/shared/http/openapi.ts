@@ -102,5 +102,11 @@ export async function registerOpenApi(app: FastifyInstance): Promise<void> {
       };
     },
   });
-  await app.register(fastifySwaggerUi, { routePrefix: DOCS_PATH });
+  // O Swagger UI (só fora de produção) precisa de scripts e estilos próprios: usa a CSP com os
+  // hashes dele no lugar da CSP do app, sem forçar HTTPS no ambiente local
+  await app.register(fastifySwaggerUi, {
+    routePrefix: DOCS_PATH,
+    staticCSP: true,
+    transformStaticCSP: (header) => header.replace(/\s*upgrade-insecure-requests;?/, ''),
+  });
 }

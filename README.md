@@ -27,6 +27,7 @@ Aplicação web para cadastro, consulta, organização e importação em lote de
 # Ambiente completo, semelhante à produção
 cp .env.example .env
 docker compose up --build
+docker compose exec api node dist/seed.js   # conta demo e dados de avaliação
 # → http://localhost:3000   (usuário demo: demo@contatos.app / demo-contatos-2026)
 ```
 
@@ -34,6 +35,8 @@ docker compose up --build
 # Desenvolvimento
 pnpm install
 pnpm db:up               # PostgreSQL via Compose
+pnpm db:migrate          # migrations
+pnpm db:seed             # conta demo e dados de avaliação
 pnpm dev                 # API (watch) + Vite com proxy /api
 pnpm --filter @contatos/api dev:worker   # worker (quando houver jobs)
 pnpm test                # unitários (back + front)
@@ -42,7 +45,7 @@ pnpm test:coverage       # backend: unitários + integração com metas de cober
 pnpm test:e2e            # Playwright
 ```
 
-> As credenciais demo são criadas apenas pelo seed de desenvolvimento/avaliação (a implementar).
+> A conta demo é criada só pelo seed (`pnpm db:seed`, ou `node dist/seed.js` na imagem): cerca de 30 contatos (ativos, inativos e favoritos) e uma importação concluída com erros. Rodar de novo não duplica nada nem desfaz o que foi alterado na demo. Sem HTTPS, o cookie precisa de outro nome (`SESSION_COOKIE_NAME=sid`, já no `.env.example`): o navegador recusa cookies `__Host-` sem `Secure`.
 
 ## Deploy (Render)
 

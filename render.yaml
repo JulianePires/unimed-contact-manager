@@ -5,7 +5,7 @@
 # upgrade do plano (`plan: 0.1c-256mb` ou maior) ou exporte os dados com pg_dump (README › Deploy).
 databases:
   - name: agenda-unimed-db
-    plan: 0.5c-512mb
+    plan: 0.1c-256mb
     region: virginia
     databaseName: contatos
     user: contatos

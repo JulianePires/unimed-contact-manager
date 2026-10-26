@@ -230,6 +230,7 @@ flowchart TB
 | `DATABASE_URL`                              | `postgres://…`             | Conexão                                             |
 | `NODE_ENV`                                  | `production`               | Comportamento                                       |
 | `WORKER_MODE`                               | `standalone` \| `embedded` | Consumo da fila                                     |
+| `MIGRATE_ON_BOOT`                           | `true` \| `false`          | Migrations na inicialização (Render free)           |
 | `SESSION_COOKIE_NAME`                       | `__Host-sid`               | `sid` em dev sem HTTPS                              |
 | `SESSION_IDLE_MINUTES` / `SESSION_MAX_DAYS` | `120` / `7`                | Expiração                                           |
 | `IMPORT_MAX_BYTES`                          | `5242880`                  | Limite de upload                                    |

@@ -1,4 +1,4 @@
-# Gerenciador de Contatos
+# Agenda Unimed
 
 Aplicação web para cadastro, consulta, organização e importação em lote de contatos. Cada usuário autenticado tem sua própria agenda.
 
@@ -43,9 +43,21 @@ pnpm test:e2e            # Playwright
 
 > As credenciais demo são criadas apenas pelo seed de desenvolvimento/avaliação (a implementar).
 
+## Deploy (Render)
+
+O [`render.yaml`](render.yaml) declara a variante free: um Web Service Docker (API + SPA, migrations na inicialização) e um Postgres free. No dashboard do Render, use **New → Blueprint**, selecione o repositório e a branch `main` e aplique. O deploy automático só ocorre quando o CI da `main` passa.
+
+> **O Postgres free expira 30 dias após a criação e os dados são apagados.** Para manter os dados, faça upgrade do plano antes do prazo (`plan: 0.1c-256mb` ou maior no `render.yaml`) ou exporte-os com `pg_dump "$EXTERNAL_DATABASE_URL" -Fc -f agenda.dump` (libere seu IP em `ipAllowList` para a conexão externa) e restaure num banco novo com `pg_restore`.
+
 ## Estado atual
 
-Estrutura inicial configurada: monorepo, lint/format/typecheck, testes (Vitest), build (Vite + tsup), Docker, Compose, CI e Blueprint do Render. A API expõe apenas `/api/health/live` e o web exibe a tela inicial; as funcionalidades abaixo são o escopo planejado.
+Base de infraestrutura pronta; as funcionalidades abaixo são o escopo planejado.
+
+- Monorepo com lint, formatação, typecheck, testes unitários (Vitest) e de integração (Testcontainers).
+- API Fastify com `/api/health/live` e `/api/health/ready`, Problem Details e o SPA servido na mesma origem.
+- Camada de dados: schema Drizzle, migration inicial (extensões, `f_unaccent`, constraints e índices) e migrations sob advisory lock.
+- Imagem Docker única (API + SPA + worker + migrate), Docker Compose (`postgres`, `migrate`, `api`, `worker`), CI com smoke test da imagem e Blueprint do Render na variante free.
+- O worker ainda não processa jobs: a fila (pg-boss) entra com a importação.
 
 ## Funcionalidades
 

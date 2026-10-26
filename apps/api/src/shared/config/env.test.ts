@@ -13,6 +13,7 @@ describe('loadEnv', () => {
       DATABASE_URL,
       LOG_LEVEL: 'info',
       WORKER_MODE: 'standalone',
+      MIGRATE_ON_BOOT: false,
       SESSION_COOKIE_NAME: '__Host-sid',
       SESSION_IDLE_MINUTES: 120,
       SESSION_MAX_DAYS: 7,
@@ -45,7 +46,17 @@ describe('loadEnv', () => {
     ['DATABASE_URL que não é PostgreSQL', { DATABASE_URL: 'mysql://localhost/db' }],
     ['porta inválida', { DATABASE_URL, PORT: '99999' }],
     ['WORKER_MODE desconhecido', { DATABASE_URL, WORKER_MODE: 'cluster' }],
+    ['MIGRATE_ON_BOOT que não é booleano', { DATABASE_URL, MIGRATE_ON_BOOT: 'talvez' }],
   ])('falha rápido %s', (_, source) => {
     expect(() => loadEnv(source)).toThrow('Variáveis de ambiente inválidas');
+  });
+
+  it.each([
+    ['true', true],
+    ['1', true],
+    ['false', false],
+    ['0', false],
+  ])('MIGRATE_ON_BOOT=%s vira %s', (value, expected) => {
+    expect(loadEnv({ DATABASE_URL, MIGRATE_ON_BOOT: value }).MIGRATE_ON_BOOT).toBe(expected);
   });
 });

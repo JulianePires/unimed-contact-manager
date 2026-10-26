@@ -8,6 +8,7 @@ import { anonymizeContact } from './anonymize';
 import { createContact } from './create';
 import { deactivateContact } from './deactivate';
 import { getContact } from './get';
+import { importContactsBatch } from './import-batch';
 import { listContacts } from './list';
 import { reactivateContact } from './reactivate';
 import { setFavorite } from './set-favorite';
@@ -50,6 +51,7 @@ function fakeRepository(overrides: Partial<ContactsRepository> = {}, rows: Conta
       calls.updated.push(args);
       return Promise.resolve({ outcome: 'not-matched' });
     },
+    insertIgnoringExisting: (rows) => Promise.resolve(rows.length),
     setDeactivated: () => Promise.resolve(undefined),
     setFavorite: () => Promise.resolve(false),
     anonymize: () => Promise.resolve(false),
@@ -312,5 +314,37 @@ describe('anonymizeContact (RF14, RN09, T-UB06)', () => {
     await expect(
       anonymizeContact(fakeRepository().repository, ownerId, contactId),
     ).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('importContactsBatch (RN11)', () => {
+  const batch = [
+    { name: 'Ana', email: 'ana@x.com', mobile: '+5581999990001', phone: null },
+    { name: 'Bia', email: 'bia@x.com', mobile: '+5581999990002', phone: '+558133330000' },
+  ];
+
+  it('dado lote com celulares novos e existentes, então conta criados e ignorados', async () => {
+    const received: unknown[] = [];
+    const { repository } = fakeRepository({
+      insertIgnoringExisting: (rows) => {
+        received.push(...rows);
+        return Promise.resolve(1);
+      },
+    });
+
+    expect(await importContactsBatch(repository, ownerId, batch)).toEqual({
+      created: 1,
+      skipped: 1,
+    });
+    expect(received).toEqual([
+      { ownerId, name: 'Ana', email: 'ana@x.com', mobileE164: '+5581999990001', phoneE164: null },
+      {
+        ownerId,
+        name: 'Bia',
+        email: 'bia@x.com',
+        mobileE164: '+5581999990002',
+        phoneE164: '+558133330000',
+      },
+    ]);
   });
 });

@@ -5,6 +5,7 @@ import helmet from '@fastify/helmet';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyRequest, type FastifyServerOptions } from 'fastify';
+import { serializerCompiler } from 'fastify-type-provider-zod';
 
 import { authModule } from '@/modules/auth';
 import { requireCsrfHeader } from '@/modules/auth/hooks';
@@ -14,6 +15,8 @@ import { importsModule } from '@/modules/imports';
 import type { Database } from '@/shared/db/client';
 import { AppError, toProblemDetails } from '@/shared/errors';
 import { healthRoutes } from '@/shared/http/health';
+import { registerOpenApi } from '@/shared/http/openapi';
+import { validatorCompiler } from '@/shared/http/validation';
 import type { JobQueue } from '@/shared/queue/job-queue';
 
 export interface AppDeps {
@@ -21,6 +24,8 @@ export interface AppDeps {
   auth: AuthConfig;
   jobQueue: JobQueue;
   importMaxBytes: number;
+  /** OpenAPI em `/api/docs`: só fora de produção (docs/05). */
+  docs?: boolean;
   now?: () => Date;
   logger?: FastifyServerOptions['logger'];
   webRoot?: string | undefined;
@@ -42,11 +47,15 @@ export async function buildApp({
   auth: authConfig,
   jobQueue,
   importMaxBytes,
+  docs = false,
   now = () => new Date(),
   logger = false,
   webRoot,
 }: AppDeps) {
   const app = Fastify({ logger, genReqId: () => randomUUID() });
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
+  if (docs) await registerOpenApi(app);
 
   await app.register(helmet);
   await app.register(fastifyCookie);

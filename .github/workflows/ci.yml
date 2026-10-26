@@ -27,6 +27,8 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm format:check
       - run: pnpm turbo run lint typecheck
+      # docs/openapi.json versionado precisa corresponder às rotas (docs/05)
+      - run: pnpm openapi:check
 
   test:
     name: Testes unitários

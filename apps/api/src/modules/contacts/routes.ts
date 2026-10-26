@@ -1,11 +1,15 @@
 import {
+  contactSchema,
   createContactInputSchema,
   listContactsQuerySchema,
+  pageSchema,
   updateContactInputSchema,
 } from '@contatos/contracts';
-import type { FastifyPluginCallback, preHandlerAsyncHookHandler } from 'fastify';
+import type { preHandlerAsyncHookHandler } from 'fastify';
+import type { FastifyPluginCallbackZod } from 'fastify-type-provider-zod';
+import { z } from 'zod';
 
-import { parseBody, parseQuery } from '@/shared/http/validation';
+import { noContent, problemResponses } from '@/shared/http/openapi';
 
 import { requireUser } from '../auth/hooks';
 import type { ContactsRepository } from './repository';
@@ -25,89 +29,194 @@ export interface ContactsRoutesOptions {
   authenticate: preHandlerAsyncHookHandler;
 }
 
-interface ById {
-  Params: { id: string };
-}
+const tags = ['contacts'];
+const byId = z.object({ id: z.string().describe('Id do contato (UUID)') });
+const ifMatch = z.object({
+  'if-match': z.string().optional().describe('ETag lido no GET, ex.: "v3" (obrigatório)'),
+});
+const contactPage = pageSchema(contactSchema);
 
 /** Contatos do usuário autenticado (docs/05 §5.4); toda rota exige sessão (RF04). */
-export const contactsRoutes: FastifyPluginCallback<ContactsRoutesOptions> = (
+export const contactsRoutes: FastifyPluginCallbackZod<ContactsRoutesOptions> = (
   app,
   { contacts, authenticate },
   done,
 ) => {
-  app.addHook('preHandler', authenticate);
+  // Antes da validação: sem sessão é 401, qualquer que seja o corpo
+  app.addHook('preValidation', authenticate);
 
-  app.get('/', (request) =>
-    listContacts(
-      contacts,
-      requireUser(request).id,
-      parseQuery(listContactsQuerySchema, request.query),
-    ),
+  app.get(
+    '',
+    {
+      schema: {
+        tags,
+        summary: 'Listar contatos com busca, filtros e paginação (RF06–RF08)',
+        querystring: listContactsQuerySchema,
+        response: { 200: contactPage, ...problemResponses(400, 401) },
+      },
+    },
+    (request) => listContacts(contacts, requireUser(request).id, request.query),
   );
 
-  app.post('/', async (request, reply) => {
-    const input = parseBody(createContactInputSchema, request.body);
-    const { contact, etag } = await createContact(contacts, requireUser(request).id, input);
-    return reply
-      .status(201)
-      .header('location', `${CONTACTS_PATH}/${contact.id}`)
-      .header('etag', etag)
-      .send(contact);
-  });
+  app.post(
+    '',
+    {
+      schema: {
+        tags,
+        summary: 'Cadastrar contato (RF05)',
+        description:
+          'Celular único na agenda, inclusive entre inativos (ADR-001): 409 MOBILE_ALREADY_EXISTS ou MOBILE_BELONGS_TO_INACTIVE_CONTACT, com `contactId`.',
+        body: createContactInputSchema,
+        response: { 201: contactSchema, ...problemResponses(401, 403, 409, 422) },
+      },
+    },
+    async (request, reply) => {
+      const { contact, etag } = await createContact(
+        contacts,
+        requireUser(request).id,
+        request.body,
+      );
+      return reply
+        .status(201)
+        .header('location', `${CONTACTS_PATH}/${contact.id}`)
+        .header('etag', etag)
+        .send(contact);
+    },
+  );
 
-  app.get<ById>('/:id', async (request, reply) => {
-    const { contact, etag } = await getContact(
-      contacts,
-      requireUser(request).id,
-      request.params.id,
-    );
-    return reply.header('etag', etag).send(contact);
-  });
+  app.get(
+    '/:id',
+    {
+      schema: {
+        tags,
+        summary: 'Consultar contato (RF09); devolve ETag',
+        params: byId,
+        response: { 200: contactSchema, ...problemResponses(401, 404) },
+      },
+    },
+    async (request, reply) => {
+      const { contact, etag } = await getContact(
+        contacts,
+        requireUser(request).id,
+        request.params.id,
+      );
+      return reply.header('etag', etag).send(contact);
+    },
+  );
 
-  app.patch<ById>('/:id', async (request, reply) => {
-    const input = parseBody(updateContactInputSchema, request.body);
-    const { contact, etag } = await updateContact(
-      contacts,
-      requireUser(request).id,
-      request.params.id,
-      request.headers['if-match'],
-      input,
-    );
-    return reply.header('etag', etag).send(contact);
-  });
+  app.patch(
+    '/:id',
+    {
+      schema: {
+        tags,
+        summary: 'Editar dados (RF10); exige If-Match',
+        description:
+          'Sem If-Match → 428; versão desatualizada → 412 CONTACT_MODIFIED (ADR-004). Status e favorito não são aceitos aqui.',
+        params: byId,
+        headers: ifMatch,
+        body: updateContactInputSchema,
+        response: { 200: contactSchema, ...problemResponses(401, 403, 404, 409, 412, 422, 428) },
+      },
+    },
+    async (request, reply) => {
+      const { contact, etag } = await updateContact(
+        contacts,
+        requireUser(request).id,
+        request.params.id,
+        request.headers['if-match'],
+        request.body,
+      );
+      return reply.header('etag', etag).send(contact);
+    },
+  );
 
-  app.delete<ById>('/:id', async (request, reply) => {
-    await anonymizeContact(contacts, requireUser(request).id, request.params.id);
-    return reply.status(204).send();
-  });
+  app.delete(
+    '/:id',
+    {
+      schema: {
+        tags,
+        summary: 'Eliminar dados pessoais de contato inativo (RF14, LGPD)',
+        params: byId,
+        response: { 204: noContent, ...problemResponses(401, 403, 404, 409) },
+      },
+    },
+    async (request, reply) => {
+      await anonymizeContact(contacts, requireUser(request).id, request.params.id);
+      return reply.status(204).send(null);
+    },
+  );
 
-  app.put<ById>('/:id/favorite', async (request, reply) => {
-    await setFavorite(contacts, requireUser(request).id, request.params.id, true);
-    return reply.status(204).send();
-  });
+  app.put(
+    '/:id/favorite',
+    {
+      schema: {
+        tags,
+        summary: 'Favoritar (RF13, idempotente)',
+        params: byId,
+        response: { 204: noContent, ...problemResponses(401, 403, 404) },
+      },
+    },
+    async (request, reply) => {
+      await setFavorite(contacts, requireUser(request).id, request.params.id, true);
+      return reply.status(204).send(null);
+    },
+  );
 
-  app.delete<ById>('/:id/favorite', async (request, reply) => {
-    await setFavorite(contacts, requireUser(request).id, request.params.id, false);
-    return reply.status(204).send();
-  });
+  app.delete(
+    '/:id/favorite',
+    {
+      schema: {
+        tags,
+        summary: 'Desfavoritar (RF13, idempotente)',
+        params: byId,
+        response: { 204: noContent, ...problemResponses(401, 403, 404) },
+      },
+    },
+    async (request, reply) => {
+      await setFavorite(contacts, requireUser(request).id, request.params.id, false);
+      return reply.status(204).send(null);
+    },
+  );
 
-  app.post<ById>('/:id/deactivate', async (request, reply) => {
-    const { contact, etag } = await deactivateContact(
-      contacts,
-      requireUser(request).id,
-      request.params.id,
-    );
-    return reply.header('etag', etag).send(contact);
-  });
+  app.post(
+    '/:id/deactivate',
+    {
+      schema: {
+        tags,
+        summary: 'Inativar (RF11, idempotente)',
+        params: byId,
+        response: { 200: contactSchema, ...problemResponses(401, 403, 404) },
+      },
+    },
+    async (request, reply) => {
+      const { contact, etag } = await deactivateContact(
+        contacts,
+        requireUser(request).id,
+        request.params.id,
+      );
+      return reply.header('etag', etag).send(contact);
+    },
+  );
 
-  app.post<ById>('/:id/reactivate', async (request, reply) => {
-    const { contact, etag } = await reactivateContact(
-      contacts,
-      requireUser(request).id,
-      request.params.id,
-    );
-    return reply.header('etag', etag).send(contact);
-  });
+  app.post(
+    '/:id/reactivate',
+    {
+      schema: {
+        tags,
+        summary: 'Reativar (RF12, idempotente)',
+        params: byId,
+        response: { 200: contactSchema, ...problemResponses(401, 403, 404) },
+      },
+    },
+    async (request, reply) => {
+      const { contact, etag } = await reactivateContact(
+        contacts,
+        requireUser(request).id,
+        request.params.id,
+      );
+      return reply.header('etag', etag).send(contact);
+    },
+  );
 
   done();
 };

@@ -64,6 +64,12 @@ export function sessionTokenOf(request: FastifyRequest, cookie: SessionCookie): 
   return request.cookies[cookie.name];
 }
 
+/** Usuário da sessão; rotas protegidas por `authenticate` sempre o têm. */
+export function requireUser(request: FastifyRequest): User {
+  if (!request.user) throw new AppError(401, 'UNAUTHENTICATED', 'Sessão inválida ou expirada');
+  return request.user;
+}
+
 export interface AuthenticateDeps {
   sessions: SessionsRepository;
   policy: SessionPolicy;

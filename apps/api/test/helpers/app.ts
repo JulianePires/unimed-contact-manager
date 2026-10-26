@@ -9,9 +9,13 @@ export type TestApp = Awaited<ReturnType<typeof buildApp>>;
 
 export const CSRF_HEADERS = { 'x-requested-with': 'fetch' } as const;
 
-export const testAuthConfig: AuthConfig = authConfigFromEnv(
-  loadEnv({ NODE_ENV: 'test', DATABASE_URL: 'postgres://localhost/test' }),
-);
+const GENEROUS_LIMIT = { max: 10_000, timeWindowMs: 60_000 };
+
+/** Limites folgados: suítes cadastram vários usuários; o 429 é testado com limites próprios. */
+export const testAuthConfig: AuthConfig = {
+  ...authConfigFromEnv(loadEnv({ NODE_ENV: 'test', DATABASE_URL: 'postgres://localhost/test' })),
+  rateLimits: { perIp: GENEROUS_LIMIT, perAccount: GENEROUS_LIMIT },
+};
 
 export function buildTestApp(
   db: Pick<Database, 'ping' | 'orm'>,

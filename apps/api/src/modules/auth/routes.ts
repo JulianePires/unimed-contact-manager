@@ -1,4 +1,4 @@
-import { loginInputSchema, registerInputSchema, type User } from '@contatos/contracts';
+import { loginInputSchema, registerInputSchema } from '@contatos/contracts';
 import type { FastifyPluginCallback, FastifyRequest, preHandlerAsyncHookHandler } from 'fastify';
 
 import type { Env } from '@/shared/config/env';
@@ -6,7 +6,13 @@ import { AppError } from '@/shared/errors';
 import { parseBody } from '@/shared/http/validation';
 
 import type { SessionPolicy } from './domain/session-policy';
-import { clearSessionCookie, type SessionCookie, sessionTokenOf, setSessionCookie } from './hooks';
+import {
+  clearSessionCookie,
+  requireUser,
+  type SessionCookie,
+  sessionTokenOf,
+  setSessionCookie,
+} from './hooks';
 import type { SessionsRepository } from './repositories/sessions';
 import type { UsersRepository } from './repositories/users';
 import { login } from './use-cases/login';
@@ -68,11 +74,6 @@ const clientOf = (request: FastifyRequest) => ({
   ip: request.ip,
 });
 
-function currentUser(request: FastifyRequest): User {
-  if (!request.user) throw new AppError(401, 'UNAUTHENTICATED', 'Sessão inválida ou expirada');
-  return request.user;
-}
-
 /** E-mail normalizado como chave do limite por conta; corpo inválido cai no limite por IP. */
 function accountKey(request: FastifyRequest): string {
   const body: unknown = request.body;
@@ -130,12 +131,12 @@ export const authRoutes: FastifyPluginCallback<AuthRoutesOptions> = (app, option
   });
 
   app.post('/logout-all', { preHandler: authenticate }, async (request, reply) => {
-    await logoutAll(sessions, currentUser(request).id);
+    await logoutAll(sessions, requireUser(request).id);
     clearSessionCookie(reply, cookie);
     return reply.status(204).send();
   });
 
-  app.get('/me', { preHandler: authenticate }, (request) => me(currentUser(request)));
+  app.get('/me', { preHandler: authenticate }, (request) => me(requireUser(request)));
 
   done();
 };

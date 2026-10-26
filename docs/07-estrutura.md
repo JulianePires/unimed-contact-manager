@@ -88,7 +88,7 @@ Monorepo **pnpm workspaces + Turborepo** (ADR-007, ADR-010).
 flowchart LR
   c_build["contracts#build"] --> api_tc["api#typecheck"] & web_tc["web#typecheck"]
   c_build --> api_test["api#test"] & web_test["web#test"]
-  c_build --> api_int["api#test:integration"]
+  c_build --> api_cov["api#test:coverage<br/>(unit + integração)"]
   c_build --> web_build["web#build"]
   web_build --> api_build["api#build<br/>(copia web/dist)"]
   api_build --> e2e["web#e2e<br/>(stack via Compose)"]
@@ -100,8 +100,9 @@ flowchart LR
 | ---------------------------------- | ------------------------------------------------------------------- |
 | `pnpm dev`                         | Postgres via Compose + API (watch) + worker + Vite com proxy `/api` |
 | `pnpm lint` / `pnpm typecheck`     | Em todos os pacotes (cache Turbo)                                   |
-| `pnpm test`                        | Unitários (back e front)                                            |
+| `pnpm test`                        | Unitários (back e front; cobertura do front e de `contracts`)       |
 | `pnpm test:integration`            | Integração com Testcontainers (requer Docker)                       |
+| `pnpm test:coverage`               | Backend: unitários + integração numa rodada, com metas de cobertura |
 | `pnpm test:e2e`                    | Playwright contra a stack completa                                  |
 | `pnpm build`                       | Build de produção                                                   |
 | `pnpm db:migrate` / `pnpm db:seed` | Migrations / usuário demo e contatos de exemplo                     |
@@ -109,7 +110,7 @@ flowchart LR
 
 ## 7.4 Convenções
 
-- **Commits:** Conventional Commits; PRs pequenos com ADR quando houver decisão.
+- **Commits:** Conventional Commits; PRs pequenos com ADR quando houver decisão; **no máximo 30 arquivos por commit** (`pnpm-lock.yaml` conta), verificado no `pre-commit` e no CI (`scripts/check-commit-size.js`). Detalhes no [CONTRIBUTING.md](../CONTRIBUTING.md).
 - **Nomes:** arquivos em `kebab-case`; componentes em `PascalCase`; casos de uso como verbos (`create-contact.ts`).
 - **Importações:** alias `@/` por app; proibido importar `modules/*/repository` fora do próprio módulo (lint).
 - **Versões:** `version` de cada pacote segue SemVer a partir dos Conventional Commits da branch (`feat` → minor, `fix`/`perf`/`revert` → patch, `!`/`BREAKING CHANGE` → major), sempre um único bump sobre a versão da `main`. Os hooks `post-commit` e `post-rewrite` aplicam o bump (`scripts/bump-versions.js`); o CI verifica com `--check`.

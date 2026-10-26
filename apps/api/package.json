@@ -10,9 +10,10 @@
     "start": "node --env-file-if-exists=.env dist/server.js",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc",
-    "test": "vitest run --coverage",
-    "test:watch": "vitest",
-    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test": "vitest run --project unit",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest --project unit",
+    "test:integration": "vitest run --project integration",
     "db:up": "docker compose -f ../../docker-compose.yml up -d --wait postgres",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env src/migrate.ts"

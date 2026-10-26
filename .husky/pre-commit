@@ -1,1 +1,2 @@
+node scripts/check-commit-size.js --staged
 pnpm exec lint-staged

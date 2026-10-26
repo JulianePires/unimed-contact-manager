@@ -19,6 +19,10 @@
     "./integration": {
       "types": "./integration.d.ts",
       "default": "./integration.js"
+    },
+    "./backend": {
+      "types": "./backend.d.ts",
+      "default": "./backend.js"
     }
   },
   "scripts": {

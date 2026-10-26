@@ -47,4 +47,4 @@ pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:cover
 
 ## Segurança
 
-Nunca versione segredos (`.env` está no `.gitignore`; o CI roda gitleaks). Vulnerabilidades devem ser reportadas de forma privada, conforme o [SECURITY.md](SECURITY.md).
+Nunca versione segredos (`.env` está no `.gitignore`; o CI roda gitleaks sobre todo o histórico). Em testes, use senhas fictícias no padrão `senha-<palavra>-<número>` (ex.: `senha-forte-123`): o [`.gitleaks.toml`](.gitleaks.toml) só as aceita dentro de arquivos de teste. Outro falso positivo deve ganhar uma exceção igualmente restrita no `.gitleaks.toml`, revisada no PR; nunca desative regras inteiras. Vulnerabilidades devem ser reportadas de forma privada, conforme o [SECURITY.md](SECURITY.md).

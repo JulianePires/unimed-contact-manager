@@ -6,6 +6,7 @@ import { PublicLayout } from '@/components/layouts/public-layout';
 import { Button } from '@/components/ui/button';
 import { meQueryOptions } from '@/features/auth/api';
 import { useLogout } from '@/features/auth/hooks/use-logout';
+import { useHasActiveImport } from '@/features/imports/hooks/use-imports';
 import { ApiError } from '@/lib/http';
 
 /** Área autenticada (RF04): sem sessão → /entrar?redirect=<rota pedida> (docs/06 §6.1). */
@@ -44,10 +45,12 @@ function AuthenticatedError() {
 function AuthenticatedRoute() {
   const { data: user } = useSuspenseQuery(meQueryOptions);
   const { logout, logoutAll } = useLogout();
+  const importsInProgress = useHasActiveImport();
 
   return (
     <AuthenticatedLayout
       user={user}
+      importsInProgress={importsInProgress}
       onLogout={() => void logout()}
       onLogoutAll={() => void logoutAll()}
     >

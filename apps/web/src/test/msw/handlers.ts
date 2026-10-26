@@ -1,14 +1,8 @@
-import {
-  importSchema,
-  loginInputSchema,
-  pageSchema,
-  registerInputSchema,
-  type User,
-  userSchema,
-} from '@contatos/contracts';
+import { loginInputSchema, registerInputSchema, type User, userSchema } from '@contatos/contracts';
 import { HttpResponse, http } from 'msw';
 
 import { contactHandlers } from './contacts';
+import { importHandlers } from './imports';
 import { parseBody, problem } from './problem';
 
 export { problem };
@@ -25,14 +19,12 @@ export const sessionUser: User = userSchema.parse({
 /** Senha aceita pelo login simulado para `sessionUser`. */
 export const sessionPassword = 'senha-correta-123';
 
-const emptyPage = { data: [], meta: { page: 1, pageSize: 20, total: 0, totalPages: 0 } };
-
 /** Visitante sem sessão (ou sessão expirada): `server.use(unauthenticatedMe)`. */
 export const unauthenticatedMe = http.get(`${API}/auth/me`, () =>
   problem('UNAUTHENTICATED', 'Sessão expirada'),
 );
 
-/** Cenário padrão: sessão ativa, agenda simulada (contacts.ts) e nenhuma importação. Cada teste ajusta com `server.use(...)`. */
+/** Cenário padrão: sessão ativa e agenda e importações simuladas. Cada teste ajusta com `server.use(...)`. */
 export const handlers = [
   http.get(`${API}/auth/me`, () => HttpResponse.json(sessionUser)),
 
@@ -61,5 +53,5 @@ export const handlers = [
   http.post(`${API}/auth/logout-all`, () => new HttpResponse(null, { status: 204 })),
 
   ...contactHandlers,
-  http.get(`${API}/imports`, () => HttpResponse.json(pageSchema(importSchema).parse(emptyPage))),
+  ...importHandlers,
 ];

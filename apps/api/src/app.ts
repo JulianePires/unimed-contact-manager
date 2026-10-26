@@ -10,13 +10,17 @@ import { authModule } from '@/modules/auth';
 import { requireCsrfHeader } from '@/modules/auth/hooks';
 import type { AuthConfig } from '@/modules/auth/routes';
 import { contactsModule } from '@/modules/contacts';
+import { importsModule } from '@/modules/imports';
 import type { Database } from '@/shared/db/client';
 import { AppError, toProblemDetails } from '@/shared/errors';
 import { healthRoutes } from '@/shared/http/health';
+import type { JobQueue } from '@/shared/queue/job-queue';
 
 export interface AppDeps {
   db: Pick<Database, 'ping' | 'orm'>;
   auth: AuthConfig;
+  jobQueue: JobQueue;
+  importMaxBytes: number;
   now?: () => Date;
   logger?: FastifyServerOptions['logger'];
   webRoot?: string | undefined;
@@ -36,6 +40,8 @@ function isSpaRoute(request: FastifyRequest, path: string): boolean {
 export async function buildApp({
   db,
   auth: authConfig,
+  jobQueue,
+  importMaxBytes,
   now = () => new Date(),
   logger = false,
   webRoot,
@@ -80,6 +86,14 @@ export async function buildApp({
   const auth = authModule({ db: db.orm, config: authConfig, now });
   await app.register(auth.plugin);
   await app.register(contactsModule(db.orm, auth.authenticate));
+  await app.register(
+    importsModule({
+      db: db.orm,
+      jobQueue,
+      maxFileBytes: importMaxBytes,
+      authenticate: auth.authenticate,
+    }),
+  );
 
   return app;
 }

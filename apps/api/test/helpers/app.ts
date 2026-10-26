@@ -4,6 +4,7 @@ import { type AppDeps, buildApp } from '@/app';
 import { type AuthConfig, authConfigFromEnv } from '@/modules/auth/routes';
 import { loadEnv } from '@/shared/config/env';
 import type { Database } from '@/shared/db/client';
+import type { JobQueue } from '@/shared/queue/job-queue';
 
 export type TestApp = Awaited<ReturnType<typeof buildApp>>;
 
@@ -17,11 +18,22 @@ export const testAuthConfig: AuthConfig = {
   rateLimits: { perIp: GENEROUS_LIMIT, perAccount: GENEROUS_LIMIT },
 };
 
+/** Suítes que não importam CSV não sobem o pg-boss; usar a fila sem configurá-la é erro explícito. */
+export const unconfiguredJobQueue: JobQueue = {
+  enqueue: () => Promise.reject(new Error('Fila não configurada neste teste')),
+};
+
 export function buildTestApp(
   db: Pick<Database, 'ping' | 'orm'>,
   overrides: Partial<Omit<AppDeps, 'db'>> = {},
 ): Promise<TestApp> {
-  return buildApp({ db, auth: testAuthConfig, ...overrides });
+  return buildApp({
+    db,
+    auth: testAuthConfig,
+    jobQueue: unconfiguredJobQueue,
+    importMaxBytes: 5_242_880,
+    ...overrides,
+  });
 }
 
 let sequence = 0;

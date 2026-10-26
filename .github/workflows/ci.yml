@@ -1,5 +1,5 @@
-# Pipeline de CI (ADR-010, docs/09 §9.6). E2E, Lighthouse, imagem Docker e deploy entram
-# junto com o Dockerfile, o render.yaml e os testes E2E.
+# Pipeline de CI (ADR-010, docs/09 §9.6). E2E e Lighthouse entram junto com os testes E2E; o deploy
+# é feito pelo Render (render.yaml, autoDeployTrigger: checksPass).
 name: CI
 
 on:
@@ -105,11 +105,33 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm turbo run build
 
+  docker:
+    name: Imagem Docker
+    needs: [quality, test, integration]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build da imagem
+        run: docker compose build
+      - name: Subir o Compose
+        run: docker compose up -d
+      - name: Smoke test
+        run: |
+          curl -fsS --retry 30 --retry-all-errors --retry-delay 2 http://localhost:3000/api/health/ready
+          curl -fsS http://localhost:3000/ | grep -q '<div id="root">'
+      - name: Logs
+        if: ${{ failure() }}
+        run: docker compose logs
+      - name: Derrubar o Compose
+        if: ${{ always() }}
+        run: docker compose down -v
+
   # Check único para a proteção da main e para o deploy do Render (autoDeployTrigger: checksPass)
   ok:
     name: CI ok
     if: ${{ always() }}
-    needs: [quality, test, integration, security, versions, build]
+    needs: [quality, test, integration, security, versions, build, docker]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:

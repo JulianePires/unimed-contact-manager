@@ -1,4 +1,4 @@
-import type { FastifyServerOptions } from 'fastify';
+import type { LoggerOptions } from 'pino';
 
 import type { Env } from './config/env';
 
@@ -16,7 +16,7 @@ export function redactSearchParams(url: string): string {
 }
 
 /** Logger do Fastify (pino): JSON estruturado com `reqId` e redação de dados sensíveis. */
-export function loggerOptions(env: Pick<Env, 'LOG_LEVEL'>): FastifyServerOptions['logger'] {
+export function loggerOptions(env: Pick<Env, 'LOG_LEVEL'>): LoggerOptions {
   return {
     level: env.LOG_LEVEL,
     redact: {

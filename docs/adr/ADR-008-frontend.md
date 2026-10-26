@@ -66,7 +66,12 @@ As listagens (contatos, histórico e erros de importação) são compostas com *
 ### Segurança
 
 - Nenhum token acessível ao JavaScript (ADR-006). Wrapper de `fetch` único adiciona `X-Requested-With` e trata `401`.
-- CSP estrita aplicada pela API ao servir o SPA (`@fastify/helmet`): `default-src 'self'`, sem scripts inline, `require-trusted-types-for 'script'`, `frame-ancestors 'none'`.
+- CSP estrita aplicada pela API (`@fastify/helmet`) em todas as respostas: `default-src 'self'`, `script-src 'self'` (sem scripts inline), `style-src 'self'` com **nonce por resposta** (sem `unsafe-inline`), `require-trusted-types-for 'script'` com uma única política (`trusted-types default`), `object-src 'none'`, `frame-ancestors 'none'`. O que isso exige do front:
+  - o nonce de estilo chega por `<meta name="csp-nonce">` (a API troca o marcador do `index.html` a cada resposta) e é registrado no `get-nonce`, usado pelos `<style>` que o Radix injeta (bloqueio de rolagem e viewport do Select);
+  - a política `default` dos Trusted Types libera só o HTML fixo do `<style>` do Radix Select; qualquer outra escrita em `innerHTML` é bloqueada;
+  - o Zod roda sem JIT (`jitless`), que usaria `new Function`; o build preserva a ordem de execução dos módulos (`strictExecutionOrder`) para essa configuração valer antes dos schemas;
+  - o CSS do sonner é importado estaticamente; a cópia que ele injeta em tempo de execução é bloqueada pela CSP (aviso no console, sem efeito visual).
+- Demais headers: HSTS de 2 anos e `upgrade-insecure-requests` em produção, `Referrer-Policy: no-referrer`, `Permissions-Policy` desligando câmera, microfone, geolocalização, pagamento e sensores. O `/api/docs` (só fora de produção) usa a CSP própria do Swagger UI.
 - Proibido `dangerouslySetInnerHTML` (regra de lint).
 - Upload: validação de tipo e tamanho no cliente apenas como UX; a API é a autoridade.
 - Dependências com lockfile, auditoria no CI e atualização automatizada.

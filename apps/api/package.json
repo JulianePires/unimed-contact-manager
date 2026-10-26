@@ -1,6 +1,6 @@
 {
   "name": "@contatos/api",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -17,6 +17,7 @@
     "db:up": "docker compose -f ../../docker-compose.yml up -d --wait postgres",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env src/migrate.ts",
+    "db:seed": "tsx --env-file-if-exists=.env src/seed.ts",
     "fixtures:large": "tsx test/fixtures/generate-large-csv.ts",
     "openapi:export": "tsx scripts/export-openapi.ts",
     "openapi:check": "tsx scripts/export-openapi.ts --check"

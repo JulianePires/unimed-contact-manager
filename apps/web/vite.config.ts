@@ -21,6 +21,11 @@ export default defineConfig({
     tailwindcss(),
   ],
   resolve: { tsconfigPaths: true },
+  build: {
+    // Mantém a ordem de execução dos imports entre chunks: a configuração do Zod sem JIT
+    // (lib/zod-jitless) precisa rodar antes dos schemas, ou a CSP com Trusted Types reporta violação
+    rolldownOptions: { output: { strictExecutionOrder: true } },
+  },
   server: {
     // Mesma origem em desenvolvimento: /api vai para a API (docs/03)
     proxy: { '/api': 'http://localhost:3000' },

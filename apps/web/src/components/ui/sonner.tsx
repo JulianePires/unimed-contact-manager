@@ -1,3 +1,5 @@
+import 'sonner/dist/styles.css';
+
 import { Toaster as Sonner, type ToasterProps } from 'sonner';
 
 /** Toasts no tema escuro da Agenda Unimed; o texto também é anunciado pelo LiveAnnouncer. */

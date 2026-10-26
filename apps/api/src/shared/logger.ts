@@ -15,12 +15,30 @@ export function redactSearchParams(url: string): string {
   return `${path}?${params.toString()}`;
 }
 
+/** Credenciais e dados pessoais (ADR-009 §2): ocultos em qualquer objeto logado, até 2 níveis. */
+const SENSITIVE_KEYS = [
+  'password',
+  'passwordHash',
+  'email',
+  'mobile',
+  'mobileE164',
+  'phone',
+  'phoneE164',
+];
+
+export const REDACTED_PATHS = [
+  'req.headers.cookie',
+  'req.headers.authorization',
+  'res.headers["set-cookie"]',
+  ...SENSITIVE_KEYS.flatMap((key) => [key, `*.${key}`, `*.*.${key}`]),
+];
+
 /** Logger do Fastify (pino): JSON estruturado com `reqId` e redação de dados sensíveis. */
 export function loggerOptions(env: Pick<Env, 'LOG_LEVEL'>): LoggerOptions {
   return {
     level: env.LOG_LEVEL,
     redact: {
-      paths: ['req.headers.cookie', 'req.headers.authorization', 'res.headers["set-cookie"]'],
+      paths: REDACTED_PATHS,
       censor: '[REDACTED]',
     },
     serializers: {

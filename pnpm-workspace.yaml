@@ -5,6 +5,7 @@ packages:
 # Pacotes autorizados a executar scripts de instalação (postinstall etc.).
 # Adicione somente o necessário (ex.: esbuild, argon2) — ADR-011.
 onlyBuiltDependencies:
+  - argon2
   - esbuild
 
 # Scripts recusados de propósito (dependências do Testcontainers): cpu-features é um acelerador

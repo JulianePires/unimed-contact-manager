@@ -1,20 +1,20 @@
 import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { buildApp } from '@/app';
 import { createDatabase, type Database } from '@/shared/db/client';
 
+import { buildTestApp, type TestApp } from '../helpers/app';
 import { startMigratedPostgres } from '../helpers/db-container';
 
 let container: StartedPostgreSqlContainer;
 let db: Database;
-let app: Awaited<ReturnType<typeof buildApp>>;
+let app: TestApp;
 let containerStopped = false;
 
 beforeAll(async () => {
   container = await startMigratedPostgres();
   db = createDatabase(container.getConnectionUri());
-  app = await buildApp({ db });
+  app = await buildTestApp(db);
 });
 
 afterAll(async () => {

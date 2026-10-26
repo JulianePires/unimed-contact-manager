@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { buildApp } from '@/app';
+import { authConfigFromEnv } from '@/modules/auth/routes';
 import { defaultWebDistDir, migrationsFolder } from '@/paths';
 import { loadEnv } from '@/shared/config/env';
 import { createDatabase } from '@/shared/db/client';
@@ -15,6 +16,7 @@ const hasWeb = existsSync(join(webRoot, 'index.html'));
 const db = createDatabase(env.DATABASE_URL);
 const app = await buildApp({
   db,
+  auth: authConfigFromEnv(env),
   logger: loggerOptions(env),
   webRoot: hasWeb ? webRoot : undefined,
 });

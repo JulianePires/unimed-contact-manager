@@ -6,12 +6,10 @@ import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyRequest, type FastifyServerOptions } from 'fastify';
 
-import { createAuthenticate, requireCsrfHeader } from '@/modules/auth/hooks';
-import { createSessionsRepository } from '@/modules/auth/repositories/sessions';
-import { createUsersRepository } from '@/modules/auth/repositories/users';
-import { type AuthConfig, authRoutes } from '@/modules/auth/routes';
-import { createContactsRepository } from '@/modules/contacts/repository';
-import { CONTACTS_PATH, contactsRoutes } from '@/modules/contacts/routes';
+import { authModule } from '@/modules/auth';
+import { requireCsrfHeader } from '@/modules/auth/hooks';
+import type { AuthConfig } from '@/modules/auth/routes';
+import { contactsModule } from '@/modules/contacts';
 import type { Database } from '@/shared/db/client';
 import { AppError, toProblemDetails } from '@/shared/errors';
 import { healthRoutes } from '@/shared/http/health';
@@ -37,7 +35,7 @@ function isSpaRoute(request: FastifyRequest, path: string): boolean {
 
 export async function buildApp({
   db,
-  auth,
+  auth: authConfig,
   now = () => new Date(),
   logger = false,
   webRoot,
@@ -79,26 +77,9 @@ export async function buildApp({
 
   await app.register(healthRoutes, { db });
 
-  const sessions = createSessionsRepository(db.orm);
-  const authenticate = createAuthenticate({
-    sessions,
-    policy: auth.policy,
-    cookie: auth.cookie,
-    now,
-  });
-  await app.register(authRoutes, {
-    prefix: '/api/v1/auth',
-    users: createUsersRepository(db.orm),
-    sessions,
-    ...auth,
-    authenticate,
-    now,
-  });
-  await app.register(contactsRoutes, {
-    prefix: CONTACTS_PATH,
-    contacts: createContactsRepository(db.orm),
-    authenticate,
-  });
+  const auth = authModule({ db: db.orm, config: authConfig, now });
+  await app.register(auth.plugin);
+  await app.register(contactsModule(db.orm, auth.authenticate));
 
   return app;
 }

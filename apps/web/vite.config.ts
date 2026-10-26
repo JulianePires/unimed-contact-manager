@@ -7,7 +7,12 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [
     // Gera src/routeTree.gen.ts; precisa vir antes do plugin do React
-    tanstackRouter({ target: 'react', autoCodeSplitting: true }),
+    tanstackRouter({
+      target: 'react',
+      autoCodeSplitting: true,
+      // Sem HMR sob o Vitest: o código injetado nas rotas não é do app e distorce a cobertura
+      codeSplittingOptions: { addHmr: process.env['VITEST'] === undefined },
+    }),
     react(),
     babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),

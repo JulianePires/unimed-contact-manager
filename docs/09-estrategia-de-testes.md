@@ -126,6 +126,8 @@ flowchart TB
 | Erros de tipo / lint                             | 0          | CI falha                       |
 | Testes instáveis (_flaky_)                       | 0 tolerado | Quarentena + issue obrigatória |
 
+No backend, a cobertura **soma unitários e integração** numa mesma execução (`pnpm test:coverage`, projetos `unit` e `integration` do preset `@contatos/vitest-config/backend`): repositórios, migrations e rotas são medidos pelo que os testes contra o PostgreSQL real exercitam, sem exclusões artificiais. Só os entrypoints (`server`, `worker`, `migrate`) ficam fora. No frontend e em `contracts`, vale a cobertura dos unitários.
+
 > Cobertura é um sinal, não um objetivo. Os testes-âncora (T-INT04 e T-INT12) valem mais que pontos percentuais.
 
 ## 9.6 Pipeline
@@ -135,7 +137,7 @@ flowchart LR
   A[install<br/>pnpm + cache] --> B[lint]
   A --> C[typecheck]
   A --> D[test<br/>unit back+front]
-  A --> E[test:integration<br/>Testcontainers]
+  A --> E[test:coverage<br/>unit + integração back<br/>Testcontainers]
   B & C & D & E --> F[build]
   F --> G[e2e<br/>Compose + Playwright + axe]
   F --> H[Lighthouse CI]

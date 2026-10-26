@@ -1,20 +1,22 @@
 import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { buildApp } from '@/app';
 import { createDatabase, type Database } from '@/shared/db/client';
 
+import { buildTestApp, type TestApp } from '../helpers/app';
 import { startMigratedPostgres } from '../helpers/db-container';
 
 let container: StartedPostgreSqlContainer;
 let db: Database;
-let app: Awaited<ReturnType<typeof buildApp>>;
+let app: TestApp;
 let containerStopped = false;
+const idleClientErrors: Error[] = [];
 
 beforeAll(async () => {
   container = await startMigratedPostgres();
   db = createDatabase(container.getConnectionUri());
-  app = await buildApp({ db });
+  db.onIdleClientError((error) => idleClientErrors.push(error));
+  app = await buildTestApp(db);
 });
 
 afterAll(async () => {
@@ -40,5 +42,9 @@ describe('GET /api/health/ready', () => {
     expect(response.statusCode).toBe(503);
     expect(response.headers['content-type']).toContain('application/problem+json');
     expect(response.json()).toMatchObject({ code: 'SERVICE_UNAVAILABLE' });
+  });
+
+  it('dado o banco derrubado, então a conexão ociosa perdida é reportada sem derrubar o processo', async () => {
+    await expect.poll(() => idleClientErrors.length).toBeGreaterThan(0);
   });
 });

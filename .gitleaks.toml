@@ -1,0 +1,13 @@
+# Varredura de segredos (CI: job `security`). Mantém todas as regras padrão do gitleaks.
+[extend]
+useDefault = true
+
+# Senhas fictícias dos testes (`senha-forte-123`, `senha-errada-123`…) têm entropia suficiente
+# para a regra genérica. A exceção exige as duas condições: arquivo de teste E valor no padrão
+# fictício; o mesmo valor fora de teste, ou outro valor em teste, continua sendo apontado.
+[[allowlists]]
+description = "Senhas fictícias em testes"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''(^|/)test/''', '''\.test\.tsx?$''']
+regexes = ['''^senha-[a-z]+-\d+$''']

@@ -1,17 +1,30 @@
 import { randomUUID } from 'node:crypto';
 
+import fastifyCookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
+import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyRequest, type FastifyServerOptions } from 'fastify';
 
-import type { Database } from './shared/db/client';
-import { AppError, toProblemDetails } from './shared/errors';
-import { healthRoutes } from './shared/http/health';
+import { createAuthenticate, requireCsrfHeader } from '@/modules/auth/hooks';
+import { createSessionsRepository } from '@/modules/auth/repositories/sessions';
+import { createUsersRepository } from '@/modules/auth/repositories/users';
+import { type AuthConfig, authRoutes } from '@/modules/auth/routes';
+import type { Database } from '@/shared/db/client';
+import { AppError, toProblemDetails } from '@/shared/errors';
+import { healthRoutes } from '@/shared/http/health';
 
 export interface AppDeps {
-  db: Pick<Database, 'ping'>;
+  db: Pick<Database, 'ping' | 'orm'>;
+  auth: AuthConfig;
+  now?: () => Date;
   logger?: FastifyServerOptions['logger'];
   webRoot?: string | undefined;
+}
+
+function pathOf(url: string): string {
+  const queryStart = url.indexOf('?');
+  return queryStart === -1 ? url : url.slice(0, queryStart);
 }
 
 function isSpaRoute(request: FastifyRequest, path: string): boolean {
@@ -20,21 +33,32 @@ function isSpaRoute(request: FastifyRequest, path: string): boolean {
   return !path.slice(path.lastIndexOf('/') + 1).includes('.');
 }
 
-export async function buildApp({ db, logger = false, webRoot }: AppDeps) {
+export async function buildApp({
+  db,
+  auth,
+  now = () => new Date(),
+  logger = false,
+  webRoot,
+}: AppDeps) {
   const app = Fastify({ logger, genReqId: () => randomUUID() });
 
   await app.register(helmet);
+  await app.register(fastifyCookie);
+  await app.register(fastifyRateLimit, { global: false });
+  app.decorateRequest('user', null);
+  app.addHook('onRequest', requireCsrfHeader);
 
   app.setErrorHandler((error, request, reply) => {
-    const instance = request.url.split('?', 1)[0] ?? request.url;
-    const problem = toProblemDetails(error, { instance, requestId: request.id });
+    const problem = toProblemDetails(error, {
+      instance: pathOf(request.url),
+      requestId: request.id,
+    });
     if (problem.status >= 500) request.log.error({ err: error }, problem.title);
     return reply.status(problem.status).type('application/problem+json').send(problem);
   });
 
   app.setNotFoundHandler((request, reply) => {
-    const path = request.url.split('?', 1)[0] ?? request.url;
-    if (webRoot !== undefined && isSpaRoute(request, path)) {
+    if (webRoot !== undefined && isSpaRoute(request, pathOf(request.url))) {
       return reply.sendFile('index.html');
     }
     throw new AppError(404, 'NOT_FOUND', 'Recurso não encontrado');
@@ -52,6 +76,22 @@ export async function buildApp({ db, logger = false, webRoot }: AppDeps) {
   }
 
   await app.register(healthRoutes, { db });
+
+  const sessions = createSessionsRepository(db.orm);
+  const authenticate = createAuthenticate({
+    sessions,
+    policy: auth.policy,
+    cookie: auth.cookie,
+    now,
+  });
+  await app.register(authRoutes, {
+    prefix: '/api/v1/auth',
+    users: createUsersRepository(db.orm),
+    sessions,
+    ...auth,
+    authenticate,
+    now,
+  });
 
   return app;
 }

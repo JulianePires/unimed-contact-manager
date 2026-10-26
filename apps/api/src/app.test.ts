@@ -5,14 +5,24 @@ import { join } from 'node:path';
 import { healthStatusSchema, problemDetailsSchema } from '@contatos/contracts';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { buildApp } from './app';
+import { buildApp } from '@/app';
+import { authConfigFromEnv } from '@/modules/auth/routes';
+import { loadEnv } from '@/shared/config/env';
+import { createDatabase } from '@/shared/db/client';
+
+const env = loadEnv({ DATABASE_URL: 'postgres://localhost:5432/sem-conexao' });
+const { orm } = createDatabase(env.DATABASE_URL);
+
+function build(ping: () => Promise<void>, webRoot?: string) {
+  return buildApp({ db: { ping, orm }, auth: authConfigFromEnv(env), webRoot });
+}
 
 type App = Awaited<ReturnType<typeof buildApp>>;
 
 let app: App | undefined;
 
 async function appWith(ping: () => Promise<void>) {
-  app = await buildApp({ db: { ping } });
+  app = await build(ping);
   return app;
 }
 
@@ -66,6 +76,19 @@ describe('erros', () => {
     });
   });
 
+  it('rota autenticada sem cookie responde 401 usando o relógio padrão', async () => {
+    const server = await appWith(() => Promise.resolve());
+
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/v1/auth/logout',
+      headers: { 'x-requested-with': 'fetch' },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(problemDetailsSchema.parse(response.json())).toMatchObject({ code: 'UNAUTHENTICATED' });
+  });
+
   it('aplica os headers de segurança do helmet', async () => {
     const server = await appWith(() => Promise.resolve());
 
@@ -89,7 +112,7 @@ describe('SPA', () => {
   afterAll(() => rm(webRoot, { recursive: true, force: true }));
 
   async function spa() {
-    app = await buildApp({ db: { ping: () => Promise.resolve() }, webRoot });
+    app = await build(() => Promise.resolve(), webRoot);
     return app;
   }
 
@@ -120,7 +143,11 @@ describe('SPA', () => {
   ] as const)('%s continua 404 em Problem Details', async (_, method, url) => {
     const server = await spa();
 
-    const response = await server.inject({ method, url });
+    const response = await server.inject({
+      method,
+      url,
+      headers: { 'x-requested-with': 'fetch' },
+    });
 
     expect(response.statusCode).toBe(404);
     expect(problemDetailsSchema.parse(response.json())).toMatchObject({ code: 'NOT_FOUND' });

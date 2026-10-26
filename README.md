@@ -38,6 +38,7 @@ pnpm dev                 # API (watch) + Vite com proxy /api
 pnpm --filter @contatos/api dev:worker   # worker (quando houver jobs)
 pnpm test                # unitários (back + front)
 pnpm test:integration    # integração com PostgreSQL real (requer Docker)
+pnpm test:coverage       # backend: unitários + integração com metas de cobertura
 pnpm test:e2e            # Playwright
 ```
 
@@ -101,6 +102,10 @@ flowchart LR
   W --> P[("PostgreSQL<br/>dados · sessões · fila")]
   K["Worker<br/>pg-boss"] --> P
 ```
+
+## Contribuição e segurança
+
+Fluxo de trabalho, limite de arquivos por commit e gates locais no [CONTRIBUTING.md](CONTRIBUTING.md). Vulnerabilidades devem ser reportadas de forma privada, conforme o [SECURITY.md](SECURITY.md).
 
 ## Limitações conhecidas
 

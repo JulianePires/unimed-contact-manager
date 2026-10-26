@@ -23,4 +23,13 @@ describe('loggerOptions', () => {
       },
     });
   });
+
+  it('serializa a requisição só com método e URL, sem o termo de busca', () => {
+    const serialize = loggerOptions({ LOG_LEVEL: 'info' }).serializers?.['req'];
+
+    expect(serialize?.({ method: 'GET', url: '/api/v1/contacts?q=maria', headers: {} })).toEqual({
+      method: 'GET',
+      url: '/api/v1/contacts?q=%5BREDACTED%5D',
+    });
+  });
 });

@@ -43,6 +43,7 @@ describe('toProblemDetails', () => {
   it.each([
     ['erro inesperado', new Error('senha do banco: 123')],
     ['status HTTP sem mapeamento', Object.assign(new Error('x'), { statusCode: 418 })],
+    ['statusCode que não é número', Object.assign(new Error('x'), { statusCode: '404' })],
     ['valor que não é erro', 'boom'],
   ])('%s vira 500 sem detalhes internos', (_, error) => {
     const problem = toProblemDetails(error, context);

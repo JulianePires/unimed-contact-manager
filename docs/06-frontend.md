@@ -37,9 +37,8 @@ flowchart TB
   Act --> IList["ImportsPage"]
 
   CList --> Toolbar["ContactsToolbar<br/>SearchInput · StatusFilter<br/>FavoriteFilter · SortSelect"]
-  CList --> Table["ContactsTable<br/>caption · aria-sort"]
-  Table --> Row["ContactRow<br/>FavoriteToggle · StatusBadge · RowActions"]
-  CList --> Pager["Pagination · PageSizeSelect"]
+  CList --> Table["ContactsTable (colunas)<br/>DataTable · DataTablePagination"]
+  Table --> Cells["Células<br/>FavoriteToggle · StatusBadge · RowActions"]
   CList --> Empty["EmptyState"]
 
   Auth --> CNew["ContactCreatePage"] --> CForm["ContactForm<br/>FormField · ErrorSummary<br/>PhoneInput · InactiveConflictAlert"]
@@ -59,6 +58,7 @@ flowchart TB
 | Rotas     | `src/routes/`                           | Definição de rotas, loaders, search params                                                     | Sem lógica de UI complexa                      |
 | Features  | `src/features/{auth,contacts,imports}/` | `components/`, `hooks/`, `api.ts` (query/mutation options)                                     | Feature não importa internals de outra feature |
 | UI base   | `src/components/ui/`                    | Componentes shadcn/ui (Radix) adaptados                                                        | Sem conhecimento de domínio                    |
+| Listagens | `src/components/data-table/`            | `DataTable` e `DataTablePagination` sobre TanStack Table (ADR-008)                             | Features só declaram colunas                   |
 | Infra     | `src/lib/`                              | `http.ts` (fetch + CSRF + Problem Details), `query-client.ts`, `a11y/announce.ts`, `format.ts` | —                                              |
 | Contratos | `@contatos/contracts`                   | Schemas Zod, tipos, códigos de erro                                                            | Fonte única com a API                          |
 

@@ -1,5 +1,4 @@
 import {
-  contactSchema,
   type ErrorCode,
   ERROR_STATUS,
   importSchema,
@@ -14,6 +13,8 @@ import {
 } from '@contatos/contracts';
 import { HttpResponse, http } from 'msw';
 import type { z } from 'zod';
+
+import { contactHandlers } from './contacts';
 
 export const API = '/api/v1';
 
@@ -56,7 +57,7 @@ export const unauthenticatedMe = http.get(`${API}/auth/me`, () =>
   problem('UNAUTHENTICATED', 'Sessão expirada'),
 );
 
-/** Cenário padrão: sessão ativa e listas vazias. Cada teste ajusta com `server.use(...)`. */
+/** Cenário padrão: sessão ativa, agenda simulada (contacts.ts) e nenhuma importação. Cada teste ajusta com `server.use(...)`. */
 export const handlers = [
   http.get(`${API}/auth/me`, () => HttpResponse.json(sessionUser)),
 
@@ -84,6 +85,6 @@ export const handlers = [
   http.post(`${API}/auth/logout`, () => new HttpResponse(null, { status: 204 })),
   http.post(`${API}/auth/logout-all`, () => new HttpResponse(null, { status: 204 })),
 
-  http.get(`${API}/contacts`, () => HttpResponse.json(pageSchema(contactSchema).parse(emptyPage))),
+  ...contactHandlers,
   http.get(`${API}/imports`, () => HttpResponse.json(pageSchema(importSchema).parse(emptyPage))),
 ];

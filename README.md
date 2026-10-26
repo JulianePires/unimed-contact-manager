@@ -11,13 +11,13 @@ Aplicação web para cadastro, consulta, organização e importação em lote de
 
 ## Stack
 
-| Camada   | Tecnologias                                                                                       |
-| -------- | ------------------------------------------------------------------------------------------------- |
-| Frontend | React 19.3 (React Compiler), Vite 8, TanStack Query · Router · Form, Zod, shadcn/ui + Tailwind v4 |
-| Backend  | Node.js 24 LTS, Fastify, Drizzle ORM, pg-boss, Zod, pino                                          |
-| Banco    | PostgreSQL (`citext`, `pg_trgm`, `unaccent`)                                                      |
-| Testes   | Vitest, Testing Library, MSW, Testcontainers, Playwright, axe, k6                                 |
-| Infra    | pnpm workspaces + Turborepo, Docker Compose, GitHub Actions, Render (Blueprint)                   |
+| Camada   | Tecnologias                                                                                               |
+| -------- | --------------------------------------------------------------------------------------------------------- |
+| Frontend | React 19.3 (React Compiler), Vite 8, TanStack Query · Router · Form · Table, Zod, shadcn/ui + Tailwind v4 |
+| Backend  | Node.js 24 LTS, Fastify, Drizzle ORM, pg-boss, Zod, pino                                                  |
+| Banco    | PostgreSQL (`citext`, `pg_trgm`, `unaccent`)                                                              |
+| Testes   | Vitest, Testing Library, MSW, Testcontainers, Playwright, axe, k6                                         |
+| Infra    | pnpm workspaces + Turborepo, Docker Compose, GitHub Actions, Render (Blueprint)                           |
 
 ## Como executar
 

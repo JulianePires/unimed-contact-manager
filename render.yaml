@@ -1,0 +1,65 @@
+# Blueprint do Render (docs/03 §3.6, ADR-010). Variante FREE ativa: um Web Service com o worker
+# embutido e migrations na inicialização sob advisory lock. A variante paga está comentada abaixo.
+databases:
+  - name: agenda-unimed-db
+    plan: free
+    region: virginia
+    databaseName: contatos
+    user: contatos
+    postgresMajorVersion: '18'
+    # Só a rede interna do Render; libere temporariamente seu IP para inspecionar com psql
+    ipAllowList: ['192.168.1.103/32', '10.0.0.1/32']
+
+services:
+  - type: web
+    name: agenda-unimed
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: main
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health/ready
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agenda-unimed-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: WORKER_MODE
+        value: embedded
+      - key: MIGRATE_ON_BOOT
+        value: 'true'
+      - key: SESSION_COOKIE_NAME
+        value: __Host-sid
+      - key: LOG_LEVEL
+        value: info
+
+  # Variante paga (topologia de referência): troque os planos acima por pagos, use
+  # WORKER_MODE=standalone e MIGRATE_ON_BOOT=false no web e adicione ao serviço web
+  #     preDeployCommand: node dist/migrate.js
+  # e o Background Worker abaixo em `services`:
+  #
+  - type: worker
+    name: agenda-unimed-worker
+    runtime: docker
+    plan: 0.5c-512mb
+    region: virginia
+    branch: main
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    dockerCommand: node dist/worker.js
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agenda-unimed-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: WORKER_MODE
+        value: standalone
+      - key: LOG_LEVEL
+        value: info

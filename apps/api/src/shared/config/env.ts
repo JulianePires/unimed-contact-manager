@@ -7,6 +7,7 @@ const envSchema = z.object({
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   WORKER_MODE: z.enum(['standalone', 'embedded']).default('standalone'),
+  MIGRATE_ON_BOOT: z.stringbool().default(false),
   SESSION_COOKIE_NAME: z.string().min(1).default('__Host-sid'),
   SESSION_IDLE_MINUTES: z.coerce.number().int().positive().default(120),
   SESSION_MAX_DAYS: z.coerce.number().int().positive().default(7),

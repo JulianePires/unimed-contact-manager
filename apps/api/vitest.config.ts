@@ -7,7 +7,7 @@ export default mergeConfig(
     test: {
       coverage: {
         // Entrypoints e camada de dados são exercitados pelos testes de integração
-        exclude: ['src/server.ts', 'src/migrate.ts', 'src/shared/db/**'],
+        exclude: ['src/{server,worker,migrate,paths}.ts', 'src/shared/db/**'],
         // Domínio puro tem meta maior que a global (docs/09 §9.5)
         thresholds: { 'src/modules/*/domain/**': { lines: 90 } },
       },

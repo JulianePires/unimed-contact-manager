@@ -1,4 +1,4 @@
-# Gerenciador de Contatos
+# Agenda Unimed
 
 Aplicação web para cadastro, consulta, organização e importação em lote de contatos. Cada usuário autenticado tem sua própria agenda.
 
@@ -45,7 +45,13 @@ pnpm test:e2e            # Playwright
 
 ## Estado atual
 
-Estrutura inicial configurada: monorepo, lint/format/typecheck, testes (Vitest), build (Vite + tsup), Docker, Compose, CI e Blueprint do Render. A API expõe apenas `/api/health/live` e o web exibe a tela inicial; as funcionalidades abaixo são o escopo planejado.
+Base de infraestrutura pronta; as funcionalidades abaixo são o escopo planejado.
+
+- Monorepo com lint, formatação, typecheck, testes unitários (Vitest) e de integração (Testcontainers).
+- API Fastify com `/api/health/live` e `/api/health/ready`, Problem Details e o SPA servido na mesma origem.
+- Camada de dados: schema Drizzle, migration inicial (extensões, `f_unaccent`, constraints e índices) e migrations sob advisory lock.
+- Imagem Docker única (API + SPA + worker + migrate), Docker Compose (`postgres`, `migrate`, `api`, `worker`), CI com smoke test da imagem e Blueprint do Render na variante free.
+- O worker ainda não processa jobs: a fila (pg-boss) entra com a importação.
 
 ## Funcionalidades
 

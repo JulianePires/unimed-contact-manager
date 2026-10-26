@@ -1,7 +1,14 @@
 import { contactSchema } from '@contatos/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { type ContactRecord, contactEtag, parseSearchIntent, toContact } from './contact';
+import {
+  type ContactRecord,
+  contactEtag,
+  expectedVersionOf,
+  isContactId,
+  parseSearchIntent,
+  toContact,
+} from './contact';
 
 const record: ContactRecord = {
   id: '0192f3a1-7c2e-7b10-9d4e-3f5a6b7c8d9e',
@@ -60,9 +67,36 @@ describe('toContact (docs/05 §5.4)', () => {
   });
 });
 
-describe('contactEtag', () => {
-  it('deriva o ETag da versão', () => {
+describe('contactEtag e expectedVersionOf (ADR-004)', () => {
+  it('deriva o ETag da versão e lê a versão de volta do If-Match', () => {
     expect(contactEtag(3)).toBe('"v3"');
+    expect(expectedVersionOf(contactEtag(3))).toBe(3);
+  });
+
+  it.each([
+    ['"v12"', 12],
+    [' "v7" ', 7],
+    ['"v0"', 0],
+    ['v3', 0],
+    ['W/"v3"', 0],
+    ['*', 0],
+    ['"v99999999999"', 0],
+  ])('If-Match %s → versão %i (0 nunca casa: 412)', (ifMatch, version) => {
+    expect(expectedVersionOf(ifMatch)).toBe(version);
+  });
+
+  it('If-Match ausente → undefined (428)', () => {
+    expect(expectedVersionOf(undefined)).toBeUndefined();
+  });
+});
+
+describe('isContactId', () => {
+  it.each([
+    ['0192f3a1-7c2e-7b10-9d4e-3f5a6b7c8d9e', true],
+    ['nao-e-uuid', false],
+    ["1' OR '1'='1", false],
+  ])('%s → %s', (id, valid) => {
+    expect(isContactId(id)).toBe(valid);
   });
 });
 

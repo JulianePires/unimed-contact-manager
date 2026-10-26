@@ -97,6 +97,25 @@ export default defineConfig([
     },
   },
 
+  // Fora dos módulos (app.ts, shared…), nenhum repositório: cada módulo monta o seu no index.ts
+  {
+    files: ['src/**/*.ts'],
+    ignores: ['src/modules/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/modules/*/repository', '**/modules/*/repositories/*'],
+              message: 'Repositórios são privados ao módulo; use o index.ts dele (ADR-007).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // Repositório de um módulo só é acessado pelo próprio módulo (docs/07 §7.4)
   ...API_MODULES.map((mod) => ({
     files: [`src/modules/${mod}/**/*.ts`],

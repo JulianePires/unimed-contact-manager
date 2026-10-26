@@ -17,6 +17,6 @@ export async function createContact(
     mobileE164: input.mobile,
     phoneE164: input.phone,
   });
-  if (!result.ok) throw mobileConflict(result.conflictingContact);
+  if (result.outcome === 'mobile-conflict') throw mobileConflict(result.conflictingContact);
   return { contact: toContact(result.contact), etag: contactEtag(result.contact.version) };
 }

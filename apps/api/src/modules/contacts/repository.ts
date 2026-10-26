@@ -6,12 +6,30 @@ import { single } from '@/shared/db/rows';
 import { type Contact, contacts, type NewContact } from '@/shared/db/schema';
 import type { Executor } from '@/shared/db/transaction';
 
-import { type SearchIntent, parseSearchIntent } from './domain/contact';
+import { ANONYMIZED_NAME, type SearchIntent, parseSearchIntent } from './domain/contact';
 import type { ConflictingContact } from './domain/errors';
 
-export type InsertContactResult =
-  | { ok: true; contact: Contact }
-  | { ok: false; conflictingContact: ConflictingContact | undefined };
+export interface ContactWritten {
+  outcome: 'written';
+  contact: Contact;
+}
+
+export interface MobileConflict {
+  outcome: 'mobile-conflict';
+  conflictingContact: ConflictingContact | undefined;
+}
+
+export type ContactWrite = ContactWritten | MobileConflict | { outcome: 'not-matched' };
+
+export interface ContactChanges {
+  name?: string | undefined;
+  email?: string | undefined;
+  mobileE164?: string | undefined;
+  phoneE164?: string | null | undefined;
+}
+
+const writtenOrNotMatched = (contact: Contact | undefined): ContactWrite =>
+  contact ? { outcome: 'written', contact } : { outcome: 'not-matched' };
 
 /** Curingas do LIKE no termo digitado são literais: `50%` não vira "qualquer coisa". */
 function containsPattern(term: string): string {
@@ -61,28 +79,108 @@ export function createContactsRepository(db: Executor) {
     return existing;
   }
 
+  /**
+   * A unicidade é garantida pela constraint (ADR-001): nada de consulta antes da escrita. Só após
+   * a violação de `contacts_owner_mobile_uq` o contato conflitante é buscado para o 409.
+   */
+  async function guardingMobile<T>(
+    ownerId: string,
+    mobileE164: string,
+    write: () => Promise<T>,
+  ): Promise<T | MobileConflict> {
+    try {
+      return await write();
+    } catch (error) {
+      if (!isUniqueViolation(error, 'contacts_owner_mobile_uq')) throw error;
+      return {
+        outcome: 'mobile-conflict',
+        conflictingContact: await findByMobile(ownerId, mobileE164),
+      };
+    }
+  }
+
+  const byId = (ownerId: string, id: string) => and(ownedBy(ownerId), eq(contacts.id, id));
+
   return {
+    insert(contact: NewContact & { mobileE164: string }): Promise<ContactWritten | MobileConflict> {
+      return guardingMobile(contact.ownerId, contact.mobileE164, async () => ({
+        outcome: 'written' as const,
+        contact: single(await db.insert(contacts).values(contact).returning()),
+      }));
+    },
+
+    /** Edição otimista (ADR-004): só aplica se a versão ainda for a lida, e a incrementa. */
+    async update(
+      ownerId: string,
+      id: string,
+      expectedVersion: number,
+      changes: ContactChanges,
+    ): Promise<ContactWrite> {
+      const write = async (): Promise<ContactWrite> => {
+        const [updated] = await db
+          .update(contacts)
+          .set({ ...changes, version: sql`${contacts.version} + 1`, updatedAt: sql`now()` })
+          .where(and(byId(ownerId, id), eq(contacts.version, expectedVersion)))
+          .returning();
+        return writtenOrNotMatched(updated);
+      };
+      return changes.mobileE164 === undefined
+        ? write()
+        : guardingMobile(ownerId, changes.mobileE164, write);
+    },
+
+    /** Transição de status; `undefined` quando já estava no estado pedido (ou não existe). */
+    async setDeactivated(
+      ownerId: string,
+      id: string,
+      deactivated: boolean,
+    ): Promise<Contact | undefined> {
+      const [updated] = await db
+        .update(contacts)
+        .set({ deactivatedAt: deactivated ? sql`now()` : null, updatedAt: sql`now()` })
+        .where(
+          and(
+            byId(ownerId, id),
+            deactivated ? isNull(contacts.deactivatedAt) : isNotNull(contacts.deactivatedAt),
+          ),
+        )
+        .returning();
+      return updated;
+    },
+
+    /** `false` quando o contato não existe para o usuário. */
+    async setFavorite(ownerId: string, id: string, isFavorite: boolean): Promise<boolean> {
+      const updated = await db
+        .update(contacts)
+        .set({ isFavorite })
+        .where(byId(ownerId, id))
+        .returning({ id: contacts.id });
+      return updated.length > 0;
+    },
+
     /**
-     * A unicidade é garantida pela constraint (ADR-001): nada de consulta antes do INSERT. Só após
-     * a violação de `contacts_owner_mobile_uq` o contato conflitante é buscado para o 409.
+     * Eliminação LGPD (ADR-009): só de inativo; nome vira marcador, contatos ficam nulos (o celular
+     * é liberado, pois NULLs são distintos no UNIQUE) e `anonymized_at` é preenchido.
      */
-    async insert(contact: NewContact & { mobileE164: string }): Promise<InsertContactResult> {
-      try {
-        return { ok: true, contact: single(await db.insert(contacts).values(contact).returning()) };
-      } catch (error) {
-        if (!isUniqueViolation(error, 'contacts_owner_mobile_uq')) throw error;
-        return {
-          ok: false,
-          conflictingContact: await findByMobile(contact.ownerId, contact.mobileE164),
-        };
-      }
+    async anonymize(ownerId: string, id: string): Promise<boolean> {
+      const updated = await db
+        .update(contacts)
+        .set({
+          name: ANONYMIZED_NAME,
+          email: null,
+          mobileE164: null,
+          phoneE164: null,
+          isFavorite: false,
+          anonymizedAt: sql`now()`,
+          updatedAt: sql`now()`,
+        })
+        .where(and(byId(ownerId, id), isNotNull(contacts.deactivatedAt)))
+        .returning({ id: contacts.id });
+      return updated.length > 0;
     },
 
     async findById(ownerId: string, id: string): Promise<Contact | undefined> {
-      const [contact] = await db
-        .select()
-        .from(contacts)
-        .where(and(ownedBy(ownerId), eq(contacts.id, id)));
+      const [contact] = await db.select().from(contacts).where(byId(ownerId, id));
       return contact;
     },
 

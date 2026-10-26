@@ -33,3 +33,28 @@ export function mobileConflict(existing: ConflictingContact | undefined): AppErr
 export function contactNotFound(): AppError {
   return new AppError(404, 'NOT_FOUND', 'Contato não encontrado');
 }
+
+/** PATCH sem `If-Match` (ADR-004): edições exigem a versão lida. */
+export function preconditionRequired(): AppError {
+  return new AppError(428, 'PRECONDITION_REQUIRED', 'Informe a versão do contato (If-Match)');
+}
+
+/**
+ * Edição condicional sem efeito (`WHERE version = $v` não casou): sumiu ou foi eliminado → 404;
+ * versão diferente → 412 `CONTACT_MODIFIED`, sem sobrescrever a alteração mais recente (RN07).
+ */
+export function rejectedUpdate(current: object | undefined): AppError {
+  if (!current) return contactNotFound();
+  return new AppError(412, 'CONTACT_MODIFIED', 'Contato alterado em outra sessão');
+}
+
+/** Eliminação sem efeito: inexistente ou já eliminado → 404; ainda ativo → 409 (RN09). */
+export function rejectedAnonymization(current: ConflictingContact | undefined): AppError {
+  if (!current) return contactNotFound();
+  return new AppError(
+    409,
+    'CONTACT_MUST_BE_INACTIVE',
+    'Inative o contato antes de eliminar os dados',
+    { contactId: current.id },
+  );
+}

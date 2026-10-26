@@ -39,16 +39,24 @@ export function internalPath(value: unknown): string | undefined {
   return value;
 }
 
-export function loginUrl(redirect: string): string {
+/** Valor de `?motivo=` que faz o login avisar que a sessão expirou. */
+export const SESSION_EXPIRED = 'sessao-expirada';
+
+/** Login após sessão expirada, voltando depois à rota atual se ela for interna. */
+export function sessionExpiredUrl(redirect: string): string {
   const target = internalPath(redirect);
-  return target ? `${LOGIN_PATH}?redirect=${encodeURIComponent(target)}` : LOGIN_PATH;
+  const params = new URLSearchParams({
+    ...(target ? { redirect: target } : {}),
+    motivo: SESSION_EXPIRED,
+  });
+  return `${LOGIN_PATH}?${params.toString()}`;
 }
 
-/** Sessão ausente ou expirada: recarrega no login, o que também descarta o cache em memória. */
+/** Sessão expirada: recarrega no login, o que também descarta o cache em memória. */
 function redirectToLogin(): void {
   const { pathname, search } = window.location;
   if (pathname === LOGIN_PATH) return;
-  window.location.assign(loginUrl(`${pathname}${search}`));
+  window.location.assign(sessionExpiredUrl(`${pathname}${search}`));
 }
 
 async function toApiError(response: Response): Promise<ApiError> {

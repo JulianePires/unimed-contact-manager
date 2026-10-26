@@ -1,17 +1,17 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { App } from './app';
 import { createQueryClient } from './lib/query-client';
 import { expectNoAxeViolations } from './test/axe';
-import { API, problem, sessionUser } from './test/msw/handlers';
+import { API, problem, sessionUser, unauthenticatedMe } from './test/msw/handlers';
 import { server } from './test/msw/server';
 import { renderRoute } from './test/render';
 
-function withoutSession() {
-  server.use(http.get(`${API}/auth/me`, () => problem('UNAUTHENTICATED', 'Sessão expirada')));
+async function openAccountMenu(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole('button', { name: `Conta de ${sessionUser.name}` }));
 }
 
 describe('área autenticada', () => {
@@ -56,24 +56,21 @@ describe('área autenticada', () => {
     expect(within(nav).getByRole('link', { name: 'Contatos' })).not.toHaveAttribute('aria-current');
   });
 
-  it.each([
-    ['Sair', 'logout'],
-    ['Sair de todos os dispositivos', 'logout-all'],
-  ])('"%s" encerra a sessão, limpa o cache e volta ao login', async (item, endpoint) => {
+  it('"Sair" encerra a sessão, limpa o cache e volta ao login', async () => {
     const user = userEvent.setup();
     let ended = false;
     server.use(
-      http.post(`${API}/auth/${endpoint}`, () => {
+      http.post(`${API}/auth/logout`, () => {
         ended = true;
-        withoutSession();
+        server.use(unauthenticatedMe);
         return new HttpResponse(null, { status: 204 });
       }),
     );
     const { router } = renderRoute('/contatos');
 
-    await user.click(await screen.findByRole('button', { name: `Conta de ${sessionUser.name}` }));
+    await openAccountMenu(user);
     expect(await screen.findByText(sessionUser.email)).toBeInTheDocument();
-    await user.click(screen.getByRole('menuitem', { name: item }));
+    await user.click(screen.getByRole('menuitem', { name: 'Sair' }));
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Entrar' })).toBeInTheDocument();
     expect(ended).toBe(true);
@@ -81,17 +78,59 @@ describe('área autenticada', () => {
     expect(router.options.context.queryClient.getQueryData(['me'])).toBeUndefined();
   });
 
+  it('"Sair de todas as sessões" pede confirmação e só então encerra todas', async () => {
+    const user = userEvent.setup();
+    let ended = false;
+    server.use(
+      http.post(`${API}/auth/logout-all`, () => {
+        ended = true;
+        server.use(unauthenticatedMe);
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const { router } = renderRoute('/contatos');
+
+    await openAccountMenu(user);
+    await user.click(await screen.findByRole('menuitem', { name: 'Sair de todas as sessões' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Sair de todas as sessões?' });
+
+    expect(within(dialog).getByRole('button', { name: 'Cancelar' })).toHaveFocus();
+    expect(ended).toBe(false);
+    await expectNoAxeViolations(document.body);
+
+    await user.click(within(dialog).getByRole('button', { name: 'Sair de todas' }));
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Entrar' })).toBeInTheDocument();
+    expect(ended).toBe(true);
+    expect(router.state.location.pathname).toBe('/entrar');
+    expect(router.options.context.queryClient.getQueryData(['me'])).toBeUndefined();
+  });
+
+  it('cancelar a saída de todas as sessões mantém a sessão e devolve o foco ao menu', async () => {
+    const user = userEvent.setup();
+    renderRoute('/contatos');
+
+    await openAccountMenu(user);
+    await user.click(await screen.findByRole('menuitem', { name: 'Sair de todas as sessões' }));
+    await screen.findByRole('alertdialog');
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: `Conta de ${sessionUser.name}` })).toHaveFocus();
+    expect(screen.getByRole('heading', { level: 1, name: 'Contatos' })).toBeInTheDocument();
+  });
+
   it('volta ao login mesmo se a sessão já tiver expirado no servidor', async () => {
     const user = userEvent.setup();
     server.use(
       http.post(`${API}/auth/logout`, () => {
-        withoutSession();
+        server.use(unauthenticatedMe);
         return problem('UNAUTHENTICATED', 'Sessão expirada');
       }),
     );
     const { router } = renderRoute('/contatos');
 
-    await user.click(await screen.findByRole('button', { name: `Conta de ${sessionUser.name}` }));
+    await openAccountMenu(user);
     await user.click(await screen.findByRole('menuitem', { name: 'Sair' }));
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Entrar' })).toBeInTheDocument();
@@ -103,7 +142,7 @@ describe('área autenticada', () => {
     server.use(http.post(`${API}/auth/logout`, () => problem('INTERNAL_ERROR', 'Erro interno')));
     const { router } = renderRoute('/contatos');
 
-    await user.click(await screen.findByRole('button', { name: `Conta de ${sessionUser.name}` }));
+    await openAccountMenu(user);
     await user.click(await screen.findByRole('menuitem', { name: 'Sair' }));
 
     expect(await screen.findByText('Não foi possível sair. Tente novamente.')).toBeInTheDocument();
@@ -120,8 +159,11 @@ describe('área autenticada', () => {
 });
 
 describe('sem sessão', () => {
+  beforeEach(() => {
+    server.use(unauthenticatedMe);
+  });
+
   it('leva ao login guardando a rota pedida', async () => {
-    withoutSession();
     const { router } = renderRoute('/importacoes?page=2');
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Entrar' })).toBeInTheDocument();
@@ -154,18 +196,11 @@ describe('sem sessão', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Contatos' })).toBeInTheDocument();
   });
-
-  it('não tem violações de acessibilidade', async () => {
-    const { container } = renderRoute('/entrar');
-    await screen.findByRole('heading', { level: 1, name: 'Entrar' });
-
-    await expectNoAxeViolations(container);
-  });
 });
 
 describe('layout raiz', () => {
   it('oferece skip link para o conteúdo principal', async () => {
-    renderRoute('/entrar');
+    renderRoute('/privacidade');
 
     expect(await screen.findByRole('link', { name: 'Pular para o conteúdo' })).toHaveAttribute(
       'href',
@@ -181,6 +216,10 @@ describe('layout raiz', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Voltar ao início' })).toHaveAttribute('href', '/');
     expect(screen.getByRole('main')).toHaveAttribute('id', 'conteudo');
+    expect(screen.getByRole('link', { name: 'Aviso de privacidade' })).toHaveAttribute(
+      'href',
+      '/privacidade',
+    );
   });
 
   it('volta ao início pelo link da página de não encontrado', async () => {
@@ -193,7 +232,7 @@ describe('layout raiz', () => {
   });
 
   it('mantém a árvore ao re-renderizar com os mesmos providers e troca ao receber outros', async () => {
-    const { router, rerender } = renderRoute('/entrar');
+    const { router, rerender } = renderRoute('/privacidade');
     await screen.findByRole('heading', { level: 1 });
     const queryClient = createQueryClient();
 
@@ -204,7 +243,7 @@ describe('layout raiz', () => {
   });
 
   it.each([
-    ['login', '/entrar', 'Entrar'],
+    ['aviso de privacidade', '/privacidade', 'Aviso de privacidade'],
     ['página de não encontrado', '/rota-que-nao-existe', 'Página não encontrada'],
   ])('mantém o %s ao navegar para uma âncora na mesma rota', async (_, path, heading) => {
     const { router } = renderRoute(path);

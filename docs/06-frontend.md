@@ -4,19 +4,21 @@ SPA em React 19.3 + Vite 8, servida pela API na mesma origem. Decisões em [ADR-
 
 ## 6.1 Rotas (TanStack Router, _file-based_)
 
-| Rota                   | Tela                                            | Acesso                              | Search params (validados com Zod)                              |
-| ---------------------- | ----------------------------------------------- | ----------------------------------- | -------------------------------------------------------------- |
-| `/entrar`              | Login                                           | Público (autenticado → `/contatos`) | `redirect?` (apenas caminhos internos)                         |
-| `/criar-conta`         | Cadastro + aviso de privacidade                 | Público                             | —                                                              |
-| `/contatos`            | Lista com busca, filtros e paginação            | Autenticado                         | `page`, `pageSize`, `status`, `favorite`, `sort` (**sem** `q`) |
-| `/contatos/novo`       | Formulário de cadastro                          | Autenticado                         | —                                                              |
-| `/contatos/$id`        | Detalhe (ações de status, favorito, eliminação) | Autenticado                         | —                                                              |
-| `/contatos/$id/editar` | Formulário de edição                            | Autenticado                         | —                                                              |
-| `/importacoes`         | Upload + histórico                              | Autenticado                         | `page`                                                         |
-| `/importacoes/$id`     | Progresso, resumo e erros                       | Autenticado                         | `errorsPage`                                                   |
-| `*`                    | Não encontrado                                  | —                                   | —                                                              |
+| Rota                   | Tela                                            | Acesso                              | Search params (validados com Zod)                                     |
+| ---------------------- | ----------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------- |
+| `/entrar`              | Login (aviso de sessão expirada)                | Público (autenticado → `/contatos`) | `redirect?` (apenas caminhos internos), `motivo?` (`sessao-expirada`) |
+| `/criar-conta`         | Cadastro + aviso de privacidade                 | Público                             | —                                                                     |
+| `/privacidade`         | Aviso de privacidade completo (ADR-009 §6)      | Público                             | —                                                                     |
+| `/contatos`            | Lista com busca, filtros e paginação            | Autenticado                         | `page`, `pageSize`, `status`, `favorite`, `sort` (**sem** `q`)        |
+| `/contatos/novo`       | Formulário de cadastro                          | Autenticado                         | —                                                                     |
+| `/contatos/$id`        | Detalhe (ações de status, favorito, eliminação) | Autenticado                         | —                                                                     |
+| `/contatos/$id/editar` | Formulário de edição                            | Autenticado                         | —                                                                     |
+| `/importacoes`         | Upload + histórico                              | Autenticado                         | `page`                                                                |
+| `/importacoes/$id`     | Progresso, resumo e erros                       | Autenticado                         | `errorsPage`                                                          |
+| `*`                    | Não encontrado                                  | —                                   | —                                                                     |
 - O layout autenticado (`_auth`) usa `beforeLoad` com a query `me`: sem sessão → `/entrar?redirect=…`.
 - O parâmetro `redirect` só aceita caminhos relativos iniciados por `/`, evitando _open redirect_.
+- Um `401` em outra chamada (sessão expirada) leva a `/entrar?redirect=…&motivo=sessao-expirada`, que avisa a expiração.
 - Cada rota é carregada sob demanda (code splitting) e define `<title>`.
 
 ## 6.2 Árvore de componentes

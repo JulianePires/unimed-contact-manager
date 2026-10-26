@@ -5,7 +5,7 @@
 - **Autenticação:** cookie de sessão `HttpOnly` (ADR-006). Exceto `register`, `login` e `health`, toda rota exige sessão → `401` se ausente ou expirada.
 - **CSRF:** `POST`, `PUT`, `PATCH` e `DELETE` exigem o header `X-Requested-With: fetch` → `403 CSRF_HEADER_MISSING` se ausente.
 - **Isolamento:** recursos de outro usuário respondem `404`.
-- **Documentação viva:** OpenAPI 3.1 gerado dos schemas Zod em `/api/docs` (fora de produção) e exportado para `docs/openapi.json` no build.
+- **Documentação viva:** OpenAPI 3.1 gerado dos schemas Zod das rotas, servido em `/api/docs` (fora de produção) e exportado para [`docs/openapi.json`](openapi.json) por `pnpm openapi:export`. O CI roda `pnpm openapi:check` e falha se o arquivo versionado não corresponder às rotas.
 
 ## 5.1 Convenções
 

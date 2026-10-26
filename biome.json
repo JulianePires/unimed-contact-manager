@@ -11,7 +11,8 @@
       "**",
       "!pnpm-lock.yaml",
       "!apps/api/drizzle/meta",
-      "!apps/web/src/routeTree.gen.ts"
+      "!apps/web/src/routeTree.gen.ts",
+      "!docs/openapi.json"
     ]
   },
   "formatter": {

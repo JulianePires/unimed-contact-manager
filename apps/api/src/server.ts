@@ -24,6 +24,7 @@ const app = await buildApp({
   auth: authConfigFromEnv(env),
   jobQueue: queue.queue,
   importMaxBytes: env.IMPORT_MAX_BYTES,
+  docs: env.NODE_ENV !== 'production',
   logger: loggerOptions(env),
   webRoot: hasWeb ? webRoot : undefined,
 });

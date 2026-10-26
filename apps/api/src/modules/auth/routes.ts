@@ -1,9 +1,15 @@
-import { loginInputSchema, registerInputSchema } from '@contatos/contracts';
-import type { FastifyPluginCallback, FastifyRequest, preHandlerAsyncHookHandler } from 'fastify';
+import {
+  type LoginInput,
+  loginInputSchema,
+  registerInputSchema,
+  userSchema,
+} from '@contatos/contracts';
+import type { FastifyRequest, preHandlerAsyncHookHandler } from 'fastify';
+import type { FastifyPluginCallbackZod } from 'fastify-type-provider-zod';
 
 import type { Env } from '@/shared/config/env';
 import { AppError } from '@/shared/errors';
-import { parseBody } from '@/shared/http/validation';
+import { noContent, PUBLIC_ROUTE, problemResponses } from '@/shared/http/openapi';
 
 import type { SessionPolicy } from './domain/session-policy';
 import {
@@ -74,18 +80,14 @@ const clientOf = (request: FastifyRequest) => ({
   ip: request.ip,
 });
 
-/** E-mail normalizado como chave do limite por conta; corpo inválido cai no limite por IP. */
+/** E-mail (já validado) como chave do limite por conta: tentativas de vários IPs somam juntas. */
 function accountKey(request: FastifyRequest): string {
-  const body: unknown = request.body;
-  const email =
-    typeof body === 'object' && body !== null && 'email' in body && typeof body.email === 'string'
-      ? body.email.trim().toLowerCase()
-      : request.ip;
-  return `login:${email}`;
+  const { email } = request.body as LoginInput;
+  return `login:${email.toLowerCase()}`;
 }
 
 /** Rotas de autenticação (docs/05 §5.3, ADR-006). */
-export const authRoutes: FastifyPluginCallback<AuthRoutesOptions> = (app, options, done) => {
+export const authRoutes: FastifyPluginCallbackZod<AuthRoutesOptions> = (app, options, done) => {
   const { users, sessions, cookie, rateLimits, authenticate } = options;
   const sessionDeps = { sessions, policy: options.policy, now: options.now };
   const perIp = {
@@ -105,38 +107,103 @@ export const authRoutes: FastifyPluginCallback<AuthRoutesOptions> = (app, option
     }
   };
 
-  app.post('/register', { config: perIp }, async (request, reply) => {
-    const input = parseBody(registerInputSchema, request.body);
-    const { user, sessionToken } = await register(
-      { ...sessionDeps, users },
-      input,
-      clientOf(request),
-    );
-    setSessionCookie(reply, cookie, sessionToken);
-    return reply.status(201).send(user);
-  });
+  const tags = ['auth'];
 
-  app.post('/login', { config: perIp, preHandler: perAccount }, async (request, reply) => {
-    const input = parseBody(loginInputSchema, request.body);
-    const { user, sessionToken } = await login({ ...sessionDeps, users }, input, clientOf(request));
-    setSessionCookie(reply, cookie, sessionToken);
-    return user;
-  });
+  app.post(
+    '/register',
+    {
+      config: perIp,
+      schema: {
+        tags,
+        summary: 'Criar conta e iniciar sessão (RF01)',
+        ...PUBLIC_ROUTE,
+        body: registerInputSchema,
+        response: { 201: userSchema, ...problemResponses(409, 422, 429) },
+      },
+    },
+    async (request, reply) => {
+      const { user, sessionToken } = await register(
+        { ...sessionDeps, users },
+        request.body,
+        clientOf(request),
+      );
+      setSessionCookie(reply, cookie, sessionToken);
+      return reply.status(201).send(user);
+    },
+  );
 
-  app.post('/logout', { preHandler: authenticate }, async (request, reply) => {
-    const token = sessionTokenOf(request, cookie);
-    if (token !== undefined) await logout(sessions, token);
-    clearSessionCookie(reply, cookie);
-    return reply.status(204).send();
-  });
+  app.post(
+    '/login',
+    {
+      config: perIp,
+      preHandler: perAccount,
+      schema: {
+        tags,
+        summary: 'Entrar (RF02)',
+        description: 'Credenciais inválidas sempre recebem a mesma resposta genérica.',
+        ...PUBLIC_ROUTE,
+        body: loginInputSchema,
+        response: { 200: userSchema, ...problemResponses(401, 422, 429) },
+      },
+    },
+    async (request, reply) => {
+      const { user, sessionToken } = await login(
+        { ...sessionDeps, users },
+        request.body,
+        clientOf(request),
+      );
+      setSessionCookie(reply, cookie, sessionToken);
+      return user;
+    },
+  );
 
-  app.post('/logout-all', { preHandler: authenticate }, async (request, reply) => {
-    await logoutAll(sessions, requireUser(request).id);
-    clearSessionCookie(reply, cookie);
-    return reply.status(204).send();
-  });
+  app.post(
+    '/logout',
+    {
+      preHandler: authenticate,
+      schema: {
+        tags,
+        summary: 'Sair da sessão atual (RF03)',
+        response: { 204: noContent, ...problemResponses(401, 403) },
+      },
+    },
+    async (request, reply) => {
+      const token = sessionTokenOf(request, cookie);
+      if (token !== undefined) await logout(sessions, token);
+      clearSessionCookie(reply, cookie);
+      return reply.status(204).send(null);
+    },
+  );
 
-  app.get('/me', { preHandler: authenticate }, (request) => me(requireUser(request)));
+  app.post(
+    '/logout-all',
+    {
+      preHandler: authenticate,
+      schema: {
+        tags,
+        summary: 'Sair de todas as sessões (RF03)',
+        response: { 204: noContent, ...problemResponses(401, 403) },
+      },
+    },
+    async (request, reply) => {
+      await logoutAll(sessions, requireUser(request).id);
+      clearSessionCookie(reply, cookie);
+      return reply.status(204).send(null);
+    },
+  );
+
+  app.get(
+    '/me',
+    {
+      preHandler: authenticate,
+      schema: {
+        tags,
+        summary: 'Usuário da sessão',
+        response: { 200: userSchema, ...problemResponses(401) },
+      },
+    },
+    (request) => me(requireUser(request)),
+  );
 
   done();
 };

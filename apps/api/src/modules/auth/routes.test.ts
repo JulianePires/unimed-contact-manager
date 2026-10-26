@@ -1,10 +1,12 @@
 import fastifyCookie from '@fastify/cookie';
 import fastifyRateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance, type preHandlerAsyncHookHandler } from 'fastify';
+import { serializerCompiler } from 'fastify-type-provider-zod';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { loadEnv } from '@/shared/config/env';
 import { toProblemDetails } from '@/shared/errors';
+import { validatorCompiler } from '@/shared/http/validation';
 
 import type { SessionsRepository } from './repositories/sessions';
 import type { UsersRepository } from './repositories/users';
@@ -46,6 +48,8 @@ const passThrough: preHandlerAsyncHookHandler = () => Promise.resolve();
 async function appWith(sessions: SessionsRepository) {
   const server = Fastify();
   app = server;
+  server.setValidatorCompiler(validatorCompiler);
+  server.setSerializerCompiler(serializerCompiler);
   await server.register(fastifyCookie);
   await server.register(fastifyRateLimit, { global: false });
   server.decorateRequest('user', null);
@@ -87,13 +91,14 @@ describe('authRoutes sem usuário autenticado no request', () => {
   });
 });
 
-describe('rate limit por conta', () => {
-  it('dado corpo sem e-mail, então usa o IP como chave e segue para a validação', async () => {
+describe('validação nativa do corpo (ADR-007)', () => {
+  it('dado corpo inválido no login, então 422 antes do limite por conta', async () => {
     const server = await appWith(sessionsSpy().repository);
 
     const response = await server.inject({ method: 'POST', url: '/login', payload: ['x'] });
 
     expect(response.statusCode).toBe(422);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 });
 

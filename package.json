@@ -19,7 +19,9 @@
     "prepare": "husky",
     "db:up": "docker compose up -d --wait postgres",
     "db:generate": "pnpm --filter @contatos/api db:generate",
-    "db:migrate": "pnpm --filter @contatos/api db:migrate"
+    "db:migrate": "pnpm --filter @contatos/api db:migrate",
+    "openapi:export": "pnpm --filter @contatos/api openapi:export",
+    "openapi:check": "pnpm --filter @contatos/api openapi:check"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.3",

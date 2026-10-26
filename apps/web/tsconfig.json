@@ -1,7 +1,10 @@
 {
   "extends": "@contatos/tsconfig/react.json",
   "compilerOptions": {
-    "rootDir": "."
+    "rootDir": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src", "e2e", "*.ts"]
 }

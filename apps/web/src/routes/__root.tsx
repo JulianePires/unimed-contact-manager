@@ -22,7 +22,7 @@ function RootLayout() {
 function NotFound() {
   return (
     <>
-      <title>Página não encontrada · Gerenciador de Contatos</title>
+      <title>Página não encontrada · Agenda Unimed</title>
       <h1 className="text-2xl font-semibold">Página não encontrada</h1>
       <p className="mt-2">
         <Link to="/" className="underline">

@@ -1,14 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
+/** A agenda é a tela inicial; sem sessão, o guard da área autenticada leva ao login. */
 export const Route = createFileRoute('/')({
-  component: HomePage,
+  beforeLoad: () => {
+    redirect({ to: '/contatos', throw: true });
+  },
 });
-
-function HomePage() {
-  return (
-    <>
-      <title>Agenda Unimed</title>
-      <h1 className="text-2xl font-semibold">Agenda Unimed</h1>
-    </>
-  );
-}

@@ -10,33 +10,81 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/_auth'
+import { Route as PublicRouteImport } from './routes/_public'
+import { Route as AuthContatosRouteImport } from './routes/_auth/contatos'
+import { Route as AuthImportacoesRouteImport } from './routes/_auth/importacoes'
+import { Route as PublicEntrarRouteImport } from './routes/_public/entrar'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/_auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublicRoute = PublicRouteImport.update({
+  id: '/_public',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthContatosRoute = AuthContatosRouteImport.update({
+  id: '/contatos',
+  path: '/contatos',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthImportacoesRoute = AuthImportacoesRouteImport.update({
+  id: '/importacoes',
+  path: '/importacoes',
+  getParentRoute: () => AuthRoute,
+} as any)
+const PublicEntrarRoute = PublicEntrarRouteImport.update({
+  id: '/entrar',
+  path: '/entrar',
+  getParentRoute: () => PublicRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/contatos': typeof AuthContatosRoute
+  '/importacoes': typeof AuthImportacoesRoute
+  '/entrar': typeof PublicEntrarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/contatos': typeof AuthContatosRoute
+  '/importacoes': typeof AuthImportacoesRoute
+  '/entrar': typeof PublicEntrarRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_auth': typeof AuthRouteWithChildren
+  '/_public': typeof PublicRouteWithChildren
+  '/_auth/contatos': typeof AuthContatosRoute
+  '/_auth/importacoes': typeof AuthImportacoesRoute
+  '/_public/entrar': typeof PublicEntrarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/contatos' | '/importacoes' | '/entrar'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/contatos' | '/importacoes' | '/entrar'
+  id:
+    | '__root__'
+    | '/'
+    | '/_auth'
+    | '/_public'
+    | '/_auth/contatos'
+    | '/_auth/importacoes'
+    | '/_public/entrar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRouteWithChildren
+  PublicRoute: typeof PublicRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +96,71 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_auth': {
+      id: '/_auth'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_public': {
+      id: '/_public'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof PublicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth/contatos': {
+      id: '/_auth/contatos'
+      path: '/contatos'
+      fullPath: '/contatos'
+      preLoaderRoute: typeof AuthContatosRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/importacoes': {
+      id: '/_auth/importacoes'
+      path: '/importacoes'
+      fullPath: '/importacoes'
+      preLoaderRoute: typeof AuthImportacoesRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_public/entrar': {
+      id: '/_public/entrar'
+      path: '/entrar'
+      fullPath: '/entrar'
+      preLoaderRoute: typeof PublicEntrarRouteImport
+      parentRoute: typeof PublicRoute
+    }
   }
 }
 
+interface AuthRouteChildren {
+  AuthContatosRoute: typeof AuthContatosRoute
+  AuthImportacoesRoute: typeof AuthImportacoesRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthContatosRoute: AuthContatosRoute,
+  AuthImportacoesRoute: AuthImportacoesRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
+interface PublicRouteChildren {
+  PublicEntrarRoute: typeof PublicEntrarRoute
+}
+
+const PublicRouteChildren: PublicRouteChildren = {
+  PublicEntrarRoute: PublicEntrarRoute,
+}
+
+const PublicRouteWithChildren =
+  PublicRoute._addFileChildren(PublicRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRouteWithChildren,
+  PublicRoute: PublicRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -62,7 +62,6 @@ docker run --rm -v "$PWD/perf/k6:/scripts" -e BASE_URL=http://host.docker.intern
 ## Deploy (Render)
 
 O [`render.yaml`](render.yaml) declara a topologia publicada em <https://agenda-unimed.onrender.com>, em planos pagos:
-
 - um Web Service Docker com API e SPA, health check em `/api/health/ready` e migrations no `preDeployCommand`;
 - um Background Worker com a mesma imagem;
 - um Postgres 18.
@@ -74,7 +73,6 @@ No dashboard do Render, use **New → Blueprint**, selecione o repositório e a 
 ## Estado atual
 
 Verificado em 27/10/2026; o status por requisito está em [Qualidade › Rastreabilidade](docs/08-qualidade.md#83-rastreabilidade-e-status).
-
 - **Funcionalidades:** RF01–RF23 e RN01–RN16 implementados, na API e na interface.
 - **Testes:** todos verdes.
 

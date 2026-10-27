@@ -4,9 +4,7 @@ let signedIn = false;
 module.exports = async (browser, { url }) => {
   if (signedIn || new URL(url).pathname === '/entrar') return;
   const password = process.env.PERF_PASSWORD;
-  const email = process.env.PERF_EMAIL;
   if (!password) throw new Error('Defina PERF_PASSWORD, a mesma senha usada no perf:seed');
-  if (!email) throw new Error('Defina PERF_EMAIL, o mesmo e-mail utilizado no perf:seed');
   const page = await browser.newPage();
   await page.goto(new URL('/entrar', url).href);
   const status = await page.evaluate(
@@ -18,7 +16,7 @@ module.exports = async (browser, { url }) => {
       });
       return response.status;
     },
-    email,
+    process.env.PERF_EMAIL || 'perf@contatos.app',
     password,
   );
   if (status !== 200) throw new Error(`Login do Lighthouse falhou (${status}): rode o perf:seed`);

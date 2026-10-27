@@ -113,4 +113,22 @@ describe('authConfigFromEnv', () => {
     expect(cookie).toEqual({ name: '__Host-sid', secure, maxAgeSeconds: 7 * 24 * 60 * 60 });
     expect(policy).toEqual({ idleMinutes: 120, maxDays: 7 });
   });
+
+  it('SECURE_TRANSPORT=false tira o Secure do cookie (Compose local em HTTP)', () => {
+    const { cookie } = authConfigFromEnv(
+      loadEnv({ DATABASE_URL, NODE_ENV: 'production', SECURE_TRANSPORT: 'false' }),
+    );
+
+    expect(cookie.secure).toBe(false);
+  });
+
+  it('limite por IP: 10 por minuto por padrão, ajustável por AUTH_IP_RATE_LIMIT', () => {
+    expect(authConfigFromEnv(loadEnv({ DATABASE_URL })).rateLimits.perIp).toEqual({
+      max: 10,
+      timeWindowMs: 60_000,
+    });
+    expect(
+      authConfigFromEnv(loadEnv({ DATABASE_URL, AUTH_IP_RATE_LIMIT: '500' })).rateLimits.perIp.max,
+    ).toBe(500);
+  });
 });

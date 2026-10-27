@@ -44,6 +44,9 @@ services:
       <<: *app-env
       WORKER_MODE: standalone
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-sid}
+      AUTH_IP_RATE_LIMIT: ${AUTH_IP_RATE_LIMIT:-10}
+      # Local em HTTP: sem HSTS, upgrade-insecure-requests nem cookie Secure (o WebKit os recusa)
+      SECURE_TRANSPORT: ${SECURE_TRANSPORT:-false}
     ports:
       - '${API_PORT:-3000}:3000'
     healthcheck:

@@ -44,6 +44,18 @@ describe('Entrar (RF02)', () => {
     expect(router.state.location.pathname).toBe('/contatos');
   });
 
+  it('Enter no último campo envia, mesmo após a validação ao sair do primeiro', async () => {
+    const user = userEvent.setup();
+    const { router } = renderRoute('/entrar');
+
+    await user.type(await screen.findByLabelText('E-mail'), sessionUser.email);
+    await user.tab();
+    await user.type(screen.getByLabelText('Senha'), `${sessionPassword}{Enter}`);
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Contatos' })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/contatos');
+  });
+
   it('credenciais inválidas mostram alerta genérico com foco', async () => {
     const user = userEvent.setup();
     const { router } = renderRoute('/entrar');

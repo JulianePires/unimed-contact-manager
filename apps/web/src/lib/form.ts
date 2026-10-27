@@ -16,6 +16,15 @@ export const formBehavior = {
   },
 };
 
+/**
+ * Envia revalidando os valores atuais: com Enter no último campo (sem sair dele), o erro gravado
+ * quando ele ainda estava vazio bloquearia o envio.
+ */
+export async function submitForm(form: AnyFormApi): Promise<void> {
+  await form.validate('blur');
+  await form.handleSubmit();
+}
+
 export function fieldDomId(formId: string, name: string): string {
   return `${formId}-${name}`;
 }

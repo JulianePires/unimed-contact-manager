@@ -13,6 +13,7 @@
     "test:integration": "turbo run test:integration",
     "test:coverage": "turbo run test:coverage",
     "test:e2e": "turbo run test:e2e",
+    "e2e:up": "docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --build --wait",
     "format": "biome format --write",
     "format:check": "biome format",
     "version:bump": "node scripts/bump-versions.js",

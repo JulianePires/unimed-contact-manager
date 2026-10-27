@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { loadEnv } from './env';
+import { enforcesHttps, loadEnv } from './env';
 
 const DATABASE_URL = 'postgres://contatos:contatos@localhost:5432/contatos';
 
@@ -17,6 +17,7 @@ describe('loadEnv', () => {
       SESSION_COOKIE_NAME: '__Host-sid',
       SESSION_IDLE_MINUTES: 120,
       SESSION_MAX_DAYS: 7,
+      AUTH_IP_RATE_LIMIT: 10,
       IMPORT_MAX_BYTES: 5_242_880,
       IMPORT_ERRORS_RETENTION_DAYS: 30,
     });
@@ -58,5 +59,17 @@ describe('loadEnv', () => {
     ['0', false],
   ])('MIGRATE_ON_BOOT=%s vira %s', (value, expected) => {
     expect(loadEnv({ DATABASE_URL, MIGRATE_ON_BOOT: value }).MIGRATE_ON_BOOT).toBe(expected);
+  });
+});
+
+describe('enforcesHttps', () => {
+  it.each([
+    ['production', undefined, true],
+    ['development', undefined, false],
+    ['test', undefined, false],
+    ['production', 'false', false],
+    ['development', 'true', true],
+  ] as const)('NODE_ENV=%s, SECURE_TRANSPORT=%s → %s', (NODE_ENV, SECURE_TRANSPORT, expected) => {
+    expect(enforcesHttps(loadEnv({ DATABASE_URL, NODE_ENV, SECURE_TRANSPORT }))).toBe(expected);
   });
 });

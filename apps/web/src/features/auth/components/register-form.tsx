@@ -5,7 +5,7 @@ import { FormErrorSummary } from '@/components/form/error-summary';
 import { FormField } from '@/components/form/form-field';
 import { useFormFeedback } from '@/components/form/use-form-feedback';
 import { Button } from '@/components/ui/button';
-import { apiErrorMessage, applyServerErrors, formBehavior } from '@/lib/form';
+import { apiErrorMessage, applyServerErrors, formBehavior, submitForm } from '@/lib/form';
 import { ApiError } from '@/lib/http';
 
 import { useRegister } from '../hooks/use-register';
@@ -44,7 +44,7 @@ export function RegisterForm() {
       className="grid gap-5"
       onSubmit={(event) => {
         event.preventDefault();
-        void form.handleSubmit();
+        void submitForm(form);
       }}
     >
       <FormErrorSummary

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { buildApp } from '@/app';
 import { authConfigFromEnv } from '@/modules/auth/routes';
 import { defaultWebDistDir, migrationsFolder } from '@/paths';
-import { loadEnv } from '@/shared/config/env';
+import { enforcesHttps, loadEnv } from '@/shared/config/env';
 import { createDatabase } from '@/shared/db/client';
 import { runMigrations } from '@/shared/db/migrator';
 import { loggerOptions } from '@/shared/logger';
@@ -25,7 +25,7 @@ const app = await buildApp({
   jobQueue: queue.queue,
   importMaxBytes: env.IMPORT_MAX_BYTES,
   docs: env.NODE_ENV !== 'production',
-  production: env.NODE_ENV === 'production',
+  production: enforcesHttps(env),
   logger: loggerOptions(env),
   webRoot: hasWeb ? webRoot : undefined,
 });

@@ -13,7 +13,7 @@ import { FormField } from '@/components/form/form-field';
 import { PhoneInput } from '@/components/form/phone-input';
 import { useFormFeedback } from '@/components/form/use-form-feedback';
 import { Button } from '@/components/ui/button';
-import { applyServerErrors, fieldDomId, formBehavior } from '@/lib/form';
+import { applyServerErrors, fieldDomId, formBehavior, submitForm } from '@/lib/form';
 import { ApiError } from '@/lib/http';
 
 import { InactiveConflictAlert } from './inactive-conflict-alert';
@@ -124,7 +124,7 @@ export function ContactForm({
       className="grid gap-5"
       onSubmit={(event) => {
         event.preventDefault();
-        void form.handleSubmit();
+        void submitForm(form);
       }}
     >
       {notice}

@@ -52,16 +52,27 @@ export const DEFAULT_AUTH_RATE_LIMITS: AuthRateLimits = {
 };
 
 export function authConfigFromEnv(
-  env: Pick<Env, 'NODE_ENV' | 'SESSION_COOKIE_NAME' | 'SESSION_IDLE_MINUTES' | 'SESSION_MAX_DAYS'>,
+  env: Pick<
+    Env,
+    | 'NODE_ENV'
+    | 'SESSION_COOKIE_NAME'
+    | 'SESSION_IDLE_MINUTES'
+    | 'SESSION_MAX_DAYS'
+    | 'AUTH_IP_RATE_LIMIT'
+    | 'SECURE_TRANSPORT'
+  >,
 ): AuthConfig {
   return {
     cookie: {
       name: env.SESSION_COOKIE_NAME,
-      secure: env.NODE_ENV !== 'development',
+      secure: env.SECURE_TRANSPORT ?? env.NODE_ENV !== 'development',
       maxAgeSeconds: env.SESSION_MAX_DAYS * 24 * 60 * 60,
     },
     policy: { idleMinutes: env.SESSION_IDLE_MINUTES, maxDays: env.SESSION_MAX_DAYS },
-    rateLimits: DEFAULT_AUTH_RATE_LIMITS,
+    rateLimits: {
+      ...DEFAULT_AUTH_RATE_LIMITS,
+      perIp: { ...DEFAULT_AUTH_RATE_LIMITS.perIp, max: env.AUTH_IP_RATE_LIMIT },
+    },
   };
 }
 

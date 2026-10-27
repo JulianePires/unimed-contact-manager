@@ -19,6 +19,8 @@ export default defineConfig({
     baseURL: process.env['E2E_BASE_URL'] ?? 'http://localhost:3000',
     locale: 'pt-BR',
     timezoneId: 'America/Recife',
+    // Sem transições, o axe nunca mede o contraste de um toast do sonner no meio do fade
+    reducedMotion: 'reduce',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

@@ -3,6 +3,8 @@ let signedIn = false;
 
 module.exports = async (browser, { url }) => {
   if (signedIn || new URL(url).pathname === '/entrar') return;
+  const password = process.env.PERF_PASSWORD;
+  if (!password) throw new Error('Defina PERF_PASSWORD, a mesma senha usada no perf:seed');
   const page = await browser.newPage();
   await page.goto(new URL('/entrar', url).href);
   const status = await page.evaluate(
@@ -15,7 +17,7 @@ module.exports = async (browser, { url }) => {
       return response.status;
     },
     process.env.PERF_EMAIL || 'perf@contatos.app',
-    process.env.PERF_PASSWORD || 'perf-contatos-2026',
+    password,
   );
   if (status !== 200) throw new Error(`Login do Lighthouse falhou (${status}): rode o perf:seed`);
   signedIn = true;

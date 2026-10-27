@@ -149,6 +149,11 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Construir e subir o Compose
         run: docker compose up -d --build --wait
+      - name: Senha da conta de carga (aleatória por execução)
+        run: |
+          password="$(openssl rand -hex 16)"
+          echo "::add-mask::$password"
+          echo "PERF_PASSWORD=$password" >> "$GITHUB_ENV"
       - name: Massa de carga (10 mil contatos e a importação de /importacoes/:id)
         env:
           DATABASE_URL: postgres://contatos:contatos@127.0.0.1:5432/contatos

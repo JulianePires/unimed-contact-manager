@@ -49,12 +49,13 @@ pnpm e2e:up && pnpm test:e2e   # Playwright contra o Compose (Chromium, Firefox,
 
 ```bash
 # Desempenho (sob demanda, contra o Compose)
+export PERF_PASSWORD="$(openssl rand -hex 16)"
 DATABASE_URL=postgres://contatos:contatos@127.0.0.1:5432/contatos pnpm --filter @contatos/api perf:seed
-docker run --rm -v "$PWD/perf/k6:/scripts" -e BASE_URL=http://host.docker.internal:3000 \
+docker run --rm -v "$PWD/perf/k6:/scripts" -e BASE_URL=http://host.docker.internal:3000 -e PERF_PASSWORD \
   grafana/k6:1.3.0 run /scripts/list-search.js   # ou import-load.js
 ```
 
-> O `perf:seed` não lê o `.env`: passe o `DATABASE_URL` do banco local de forma explícita. Ele cria 10 mil contatos e uma conta de carga com senha conhecida; **não rode em produção**.
+> O `perf:seed` não lê o `.env`: passe o `DATABASE_URL` do banco local de forma explícita. Ele cria 10 mil contatos e uma conta de carga com a senha de `PERF_PASSWORD` (a mesma que o k6 e o Lighthouse CI usam); **não rode em produção**.
 
 > A conta demo é criada só pelo seed (`pnpm db:seed`, ou `node dist/seed.js` na imagem): cerca de 30 contatos (ativos, inativos e favoritos) e uma importação concluída com erros. Rodar de novo não duplica nada nem desfaz o que foi alterado na demo. Sem HTTPS, o cookie precisa de outro nome (`SESSION_COOKIE_NAME=sid`, já no `.env.example`): o navegador recusa cookies `__Host-` sem `Secure`.
 

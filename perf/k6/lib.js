@@ -13,8 +13,9 @@ function sessionCookie(response) {
 /** Login da conta criada por `perf:seed`; devolve o header `Cookie` para os VUs. */
 export function login(
   email = __ENV.PERF_EMAIL || 'perf@contatos.app',
-  password = __ENV.PERF_PASSWORD || 'perf-contatos-2026',
+  password = __ENV.PERF_PASSWORD,
 ) {
+  if (!password) throw new Error('Defina PERF_PASSWORD, a mesma senha usada no perf:seed');
   const response = http.post(`${API}/auth/login`, JSON.stringify({ email, password }), {
     headers: { ...CSRF, 'Content-Type': 'application/json' },
   });

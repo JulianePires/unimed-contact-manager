@@ -52,7 +52,7 @@ Algumas decisões anteriores entram em tensão com esses pontos:
 ### 6. Transparência
 
 - Aviso de privacidade na tela de cadastro, descrevendo finalidade, dados tratados, retenção e direitos.
-- Direitos de acesso e correção atendidos pelas próprias funcionalidades de consulta e edição. A portabilidade por exportação CSV fica registrada como evolução.
+- Direitos de acesso e correção atendidos pelas próprias funcionalidades de consulta e edição. A portabilidade por exportação CSV fica registrada como evolução ([08 §8.4](../08-qualidade.md#84-limitações-conhecidas-e-evolução)), com um requisito: toda célula exportada passa pela mesma neutralização de fórmulas do §5 (`escapeCsvCell`). Os campos aceitam texto livre (o nome pode começar com `=`, como em `=HIPERLINK(...)`); a defesa contra CSV injection fica na saída, não na entrada.
 
 ## Alternativas consideradas
 

@@ -1,0 +1,5 @@
+# Senha fictícia da conta de carga, usada como fallback em perf/lighthouse/login.cjs antes de o
+# PERF_PASSWORD passar a ser obrigatório (o CI gera uma senha aleatória por execução). Já removida
+# do código; os commits abaixo continuam no histórico, que o job `security` varre por inteiro.
+4909a924a0db0a7947a568be41b19a05bb5776a3:perf/lighthouse/login.cjs:generic-api-key:18
+7a4cdcca820a5f030aabb9ed89236b9706a86671:perf/lighthouse/login.cjs:generic-api-key:18

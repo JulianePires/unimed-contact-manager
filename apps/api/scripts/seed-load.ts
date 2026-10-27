@@ -16,7 +16,8 @@ const LAST_NAMES = ['Silva', 'Araújo', 'Conceição', 'Lima', 'Ferreira', 'Melo
 
 const rowCount = Number(process.argv[2] ?? 10_000);
 const email = process.env['PERF_EMAIL'] ?? 'perf@contatos.app';
-const password = process.env['PERF_PASSWORD'] ?? 'perf-contatos-2026';
+const password = process.env['PERF_PASSWORD'];
+if (!password) throw new Error('Defina PERF_PASSWORD para a conta de carga');
 const env = loadEnv();
 const db = createDatabase(env.DATABASE_URL);
 

@@ -52,6 +52,9 @@ export async function createContactByApi(
 
 /** WCAG 2.2 AA: nenhuma violação séria ou crítica na tela atual (docs/09 §9.5). */
 export async function expectAccessible(page: Page): Promise<void> {
+  await page.waitForFunction(() =>
+    document.getAnimations().every(({ playState }) => playState !== 'running'),
+  );
   const { violations } = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();

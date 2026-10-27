@@ -148,15 +148,22 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
       - name: Construir e subir o Compose
-        run: |
-          docker compose up -d --build
-          docker compose exec -T api node dist/seed.js
-          curl -fsS --retry 30 --retry-all-errors --retry-delay 2 http://localhost:3000/api/health/ready
-      - name: Executar Lighthouse CI
+        run: docker compose up -d --build --wait
+      - name: Massa de carga (10 mil contatos e a importação de /importacoes/:id)
         env:
-          PERF_EMAIL: demo@contatos.app
-          PERF_PASSWORD: demo-contatos-2026
-        run: pnpm dlx @lhci/cli@0.15.1 autorun --config=lighthouserc.json
+          DATABASE_URL: postgres://contatos:contatos@127.0.0.1:5432/contatos
+        run: pnpm --filter @contatos/api perf:seed
+      - name: Executar Lighthouse CI (T-NF03)
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: pnpm --package=@lhci/cli@0.15.1 --package=puppeteer-core@25.13.0 dlx lhci autorun --config=lighthouserc.json
+      - name: Publicar relatórios
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/reports/
+          if-no-files-found: ignore
       - name: Logs
         if: ${{ failure() }}
         run: docker compose logs

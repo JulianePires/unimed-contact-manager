@@ -57,3 +57,10 @@ Somente usuários autenticados acessam o sistema, e cada usuário possui sua pr�
 - (+) Front mais simples: sem interceptor de refresh nem armazenamento de token.
 - (−) Uma consulta ao banco por requisição autenticada (busca por PK; cache em memória é a evolução possível).
 - (−) Exige front e API na mesma origem. Restrição atendida pela topologia de deploy (ADR-010).
+
+## Atualização (2026-10-27)
+
+- **Não implementado: limpeza periódica de sessões expiradas.** Uma sessão expirada deixa de valer na hora, porque a consulta filtra `expires_at > now()`. Mas a linha continua na tabela `sessions`, com IP e user agent, até um logout. A evolução é incluir essa remoção no job diário `purge-retention` (docs/08 §8.4).
+- **`Secure` e HSTS dependem de `SECURE_TRANSPORT`.** Sem valor, seguem o `NODE_ENV`, como antes. O Compose local roda como produção, mas em HTTP: define `SECURE_TRANSPORT=false` e `SESSION_COOKIE_NAME=sid`, porque o navegador recusa cookies `__Host-` sem `Secure`. Em produção (Render), o cookie é `__Host-sid` com `Secure`.
+- **Limite por IP configurável** em `AUTH_IP_RATE_LIMIT` (padrão: 10 por minuto). O E2E eleva o limite em `docker-compose.e2e.yml`, porque cada cenário cadastra um usuário em 4 navegadores. O limite por conta não mudou.
+- A conta demo só existe num banco onde o seed (`node dist/seed.js`) foi executado.

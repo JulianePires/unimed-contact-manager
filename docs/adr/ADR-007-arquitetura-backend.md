@@ -77,3 +77,13 @@ apps/api/src/
 - (+) Regras de negócio testáveis isoladamente; um contrato único entre front e back.
 - (+) Estrutura que permite extrair um módulo (ex.: importação) para serviço próprio, se necessário.
 - (−) Monorepo exige configuração inicial de workspaces, TypeScript project references e pipeline.
+
+## Atualização (2026-10-27)
+
+A árvore acima difere da implementada em três pontos:
+
+- **Jobs:** ficam em `modules/imports/jobs/`, com um arquivo por job (`process-import.ts` e `purge-retention.ts`).
+- **Auth:** usa `repositories/` (usuários e sessões) e `hooks.ts` (autenticação e CSRF).
+- **Migrations:** ficam em `apps/api/drizzle/`, geradas pelo `drizzle-kit`; a migration inicial tem o SQL escrito à mão.
+
+A regra "módulos não acessam repositórios uns dos outros" é aplicada pelo `no-restricted-imports` do `apps/api/eslint.config.js`.

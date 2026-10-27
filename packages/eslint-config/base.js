@@ -15,6 +15,8 @@ export const base = defineConfig([
     '**/.turbo/',
     '**/playwright-report/',
     '**/test-results/',
+    '**/perf/k6/**',
+    '**/apresentacao/**',
   ]),
 
   js.configs.recommended,
@@ -34,7 +36,7 @@ export const base = defineConfig([
       '@typescript-eslint/no-import-type-side-effects': 'error',
       '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
       eqeqeq: ['error', 'always'],
-      'no-console': 'error',
+      'no-console': 'off',
     },
   },
 

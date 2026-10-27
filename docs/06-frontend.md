@@ -32,9 +32,8 @@ flowchart TB
   Pub --> Login["LoginPage<br/>LoginForm"]
   Pub --> Register["RegisterPage<br/>RegisterForm · PrivacyNotice"]
 
-  Auth --> Act["Activity (aba Contatos / Importações)"]
-  Act --> CList["ContactsPage"]
-  Act --> IList["ImportsPage"]
+  Auth --> CList["ContactsPage"]
+  Auth --> IList["ImportsPage"]
 
   CList --> Toolbar["ContactsToolbar<br/>SearchInput · StatusFilter<br/>FavoriteFilter · SortSelect"]
   CList --> Table["ContactsTable (colunas)<br/>DataTable · DataTablePagination"]
@@ -43,7 +42,7 @@ flowchart TB
 
   Auth --> CNew["ContactCreatePage"] --> CForm["ContactForm<br/>FormField · ErrorSummary<br/>PhoneInput · InactiveConflictAlert"]
   Auth --> CEdit["ContactEditPage"] --> CForm
-  Auth --> CDetail["ContactDetailPage<br/>ViewTransition"] --> CActions["DeactivateDialog · ReactivateButton<br/>AnonymizeDialog · FavoriteToggle"]
+  Auth --> CDetail["ContactDetailPage"] --> CActions["DeactivateDialog · ReactivateButton<br/>AnonymizeDialog · FavoriteToggle"]
 
   IList --> Upload["ImportUploader<br/>Dropzone · FileInput · DuplicateFileDialog"]
   IList --> History["ImportHistoryTable"]
@@ -90,12 +89,9 @@ flowchart TB
 | React Compiler 1.0            | Todo o app                      | Memoização automática; nenhum `useMemo`/`useCallback` manual |
 | `useOptimistic`               | `FavoriteToggle`                | Resposta instantânea com rollback automático                 |
 | `useDeferredValue` + debounce | `SearchInput` → `ContactsTable` | Digitação fluida e menos requisições                         |
-| `<Activity>`                  | Abas Contatos/Importações       | Estado preservado; effects (polling) pausados quando oculta  |
 | `useEffectEvent`              | `ImportProgress`                | Anúncios acessíveis sem reiniciar o intervalo                |
-| `<ViewTransition>`            | Lista → detalhe                 | Continuidade visual; desligada com `prefers-reduced-motion`  |
-| Fragment refs                 | `ContactForm`, diálogos         | Foco no primeiro campo inválido/primeiro elemento            |
 | `<title>`                     | Rotas                           | Anúncio de navegação para leitores de tela                   |
-| Suspense + `useSuspenseQuery` | Páginas                         | Estados de carregamento declarativos com skeletons           |
+| Suspense + `useSuspenseQuery` | Listagem, detalhe da importação | Estados de carregamento declarativos                         |
 | `ref` como prop               | Componentes UI                  | Sem `forwardRef`                                             |
 
 ## 6.6 Fluxos de interface

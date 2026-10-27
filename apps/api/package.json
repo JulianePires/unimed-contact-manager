@@ -18,7 +18,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env src/migrate.ts",
     "db:seed": "tsx --env-file-if-exists=.env src/seed.ts",
-    "perf:seed": "tsx --env-file-if-exists=.env scripts/seed-load.ts",
+    "perf:seed": "tsx scripts/seed-load.ts",
     "fixtures:large": "tsx test/fixtures/generate-large-csv.ts",
     "openapi:export": "tsx scripts/export-openapi.ts",
     "openapi:check": "tsx scripts/export-openapi.ts --check"

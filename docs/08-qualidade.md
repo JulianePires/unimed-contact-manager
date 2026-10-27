@@ -54,7 +54,7 @@ A análise usa o modelo de qualidade de produto da **ISO/IEC 25010:2023**, com n
 - **Integridade sob concorrência:** constraint única como fonte da verdade, provada por T-INT04 e T-INT19.
 - **Atomicidade:** importação, arquivo e job na mesma transação (sem _dual write_), provada por T-INT13.
 - **Disponibilidade:** deploy sem downtime com health checks; _graceful shutdown_.
-- **Riscos:** a publicação usa planos pagos do Render (`render.yaml`); na variante free, o serviço hiberna, o banco expira em 30 dias e não há backup.
+- **Riscos:** a publicação usa o plano free do Render (`render.yaml`): o serviço hiberna, o banco expira em 30 dias e não há backup.
 
 ### Segurança (_confidencialidade, integridade, autenticidade, responsabilização, resistência_)
 
@@ -186,3 +186,4 @@ Status verificado no código e nos testes em 27/10/2026: ✅ atendido · ⚠️ 
 | Sem recuperação de senha                         | Usuário depende de suporte                                                  | Fluxo por e-mail com token de uso único                                                                                                |
 | Sem exportação da agenda                         | Portabilidade (LGPD) parcial                                                | `GET /contacts/export.csv`, com toda célula neutralizada contra fórmulas pelo `escapeCsvCell` (ADR-009 §6)                             |
 | Logs da plataforma podem conter `q`              | Exposição residual de PII                                                   | Busca via `POST /contacts/search` ou configuração de logs do provedor                                                                  |
+| Produção no plano free do Render                 | Hibernação; banco expira em 30 dias, sem backup; sem conta demo             | Planos pagos (ADR-010, README › Deploy); até lá, `pg_dump` antes do prazo                                                              |

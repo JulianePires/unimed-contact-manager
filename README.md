@@ -2,7 +2,7 @@
 
 Aplicação web para cadastro, consulta, organização e importação em lote de contatos. Cada usuário autenticado tem sua própria agenda.
 
-**Produção:** <https://agenda-unimed.onrender.com>. **Conta demo:** `demo@contatos.app` / `demo-contatos-2026`.
+**Produção:** <https://agenda-unimed.onrender.com> (plano free do Render: crie uma conta em **Criar conta**; a primeira visita após 15 min sem uso leva cerca de 1 min).
 
 > **Destaques de engenharia**
 >
@@ -61,14 +61,15 @@ docker run --rm -v "$PWD/perf/k6:/scripts" -e BASE_URL=http://host.docker.intern
 
 ## Deploy (Render)
 
-O [`render.yaml`](render.yaml) declara a topologia publicada em <https://agenda-unimed.onrender.com>, em planos pagos:
-- um Web Service Docker com API e SPA, health check em `/api/health/ready` e migrations no `preDeployCommand`;
-- um Background Worker com a mesma imagem;
-- um Postgres 18.
+O [`render.yaml`](render.yaml) declara a variante free publicada em <https://agenda-unimed.onrender.com>:
+- um Web Service Docker com API, SPA e worker embutido (`WORKER_MODE=embedded`), health check em `/api/health/ready` e migrations na inicialização (`MIGRATE_ON_BOOT=true`);
+- um Postgres 18 free.
 
-No dashboard do Render, use **New → Blueprint**, selecione o repositório e a branch `main` e aplique. O deploy automático só ocorre quando o CI da `main` passa. A conta demo é criada rodando `node dist/seed.js` no **Shell** do serviço web.
+No dashboard do Render, use **New → Blueprint**, selecione o repositório e a branch `main` e aplique. O deploy automático só ocorre quando o CI da `main` passa. O plano free não tem Shell nem pre-deploy, então a conta demo não é criada em produção.
 
-> A variante free (sem worker nem pre-deploy) também funciona, com `WORKER_MODE=embedded` e `MIGRATE_ON_BOOT=true`. O Postgres free expira em 30 dias e os dados são apagados ([03 §3.6](docs/03-arquitetura.md)).
+> **Limites do plano free:** o serviço hiberna após 15 min sem tráfego (cerca de 1 min para retomar) e o expurgo diário de retenção só roda com o serviço acordado. **O Postgres free expira 30 dias após a criação e os dados são apagados**, sem backup. Para manter os dados, faça upgrade do plano antes do prazo ou exporte-os com `pg_dump "$EXTERNAL_DATABASE_URL" -Fc -f agenda.dump` (libere seu IP em `ipAllowList` para a conexão externa) e restaure num banco novo com `pg_restore`.
+
+> **Variante paga** (topologia de referência, ADR-010): planos pagos no web e no banco, `WORKER_MODE=standalone` e `MIGRATE_ON_BOOT=false` no web, `preDeployCommand: node dist/migrate.js` e um Background Worker com a mesma imagem e `dockerCommand: node dist/worker.js`.
 
 ## Estado atual
 

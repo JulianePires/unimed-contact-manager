@@ -1,9 +1,11 @@
-# Blueprint do Render (docs/03 §3.6, ADR-010).
-# WebService e Worker para a API da Agenda Unimed, com banco de dados PostgreSQL.
-
+# Blueprint do Render (docs/03 §3.6, ADR-010), variante free: um Web Service com o worker
+# embutido (WORKER_MODE=embedded) e migrations na inicialização sob advisory lock, mais o Postgres free.
+#
+# ATENÇÃO: o Postgres free expira 30 dias após a criação e os dados são apagados. Antes disso, faça
+# upgrade do plano ou exporte os dados com pg_dump (README › Deploy).
 databases:
   - name: agenda-unimed-db
-    plan: 0.1c-256mb
+    plan: free
     region: virginia
     databaseName: contatos
     user: contatos
@@ -18,14 +20,13 @@ services:
   - type: web
     name: agenda-unimed
     runtime: docker
-    plan: 0.5c-512mb
+    plan: free
     region: virginia
     branch: main
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
     healthCheckPath: /api/health/ready
     autoDeployTrigger: checksPass
-    preDeployCommand: node dist/migrate.js
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -34,32 +35,10 @@ services:
       - key: NODE_ENV
         value: production
       - key: WORKER_MODE
-        value: standalone
+        value: embedded
       - key: MIGRATE_ON_BOOT
-        value: 'false'
+        value: 'true'
       - key: SESSION_COOKIE_NAME
         value: __Host-sid
-      - key: LOG_LEVEL
-        value: error
-
-  - type: worker
-    name: agenda-unimed-worker
-    runtime: docker
-    plan: 0.5c-512mb
-    region: virginia
-    branch: main
-    dockerfilePath: ./apps/api/Dockerfile
-    dockerContext: .
-    dockerCommand: node dist/worker.js
-    autoDeployTrigger: checksPass
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: agenda-unimed-db
-          property: connectionString
-      - key: NODE_ENV
-        value: production
-      - key: WORKER_MODE
-        value: standalone
       - key: LOG_LEVEL
         value: error

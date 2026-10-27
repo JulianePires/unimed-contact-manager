@@ -199,29 +199,27 @@ erDiagram
 
 ### Produção — Render (Blueprint `render.yaml`)
 
+Variante free: sem Background Worker nem pre-deploy, a API consome as filas e aplica as migrations na inicialização com `pg_advisory_lock`. Limitações: hibernação após 15 min sem tráfego, expurgo diário só com o serviço acordado e expiração do Postgres em 30 dias, sem backup.
+
 ```mermaid
 flowchart TB
   browser(["Navegador"])
   subgraph render["Render"]
     direction TB
-    web["<b>Web Service</b> (Docker)<br/>node dist/server.js<br/>API /api/v1 + SPA /<br/>health: /api/health/ready"]
-    wk["<b>Background Worker</b> (Docker)<br/>node dist/worker.js<br/>WORKER_MODE=standalone"]
-    pg[("<b>Render Postgres</b><br/>citext · pg_trgm · unaccent")]
-    pre["preDeployCommand<br/>node dist/migrate.js"]
+    web["<b>Web Service</b> free (Docker)<br/>node dist/server.js<br/>API /api/v1 + SPA /<br/>worker embutido: WORKER_MODE=embedded<br/>migrations na inicialização<br/>health: /api/health/ready"]
+    pg[("<b>Render Postgres</b> free<br/>citext · pg_trgm · unaccent")]
   end
   gh["GitHub<br/>main protegida"]
 
   browser -- "HTTPS (TLS da plataforma)" --> web
   web --> pg
-  wk --> pg
-  pre -. "antes de cada deploy" .-> pg
   gh -- "deploy automático após CI verde" --> render
 ```
 
-| Variante                   | Diferença                                                                                                                                                                                 |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Render free**            | Sem Background Worker nem pre-deploy: `WORKER_MODE=embedded` e migrations na inicialização com `pg_advisory_lock`. Limitações: hibernação após 15 min e expiração do Postgres em 30 dias. |
-| **Local (Docker Compose)** | Serviços `postgres`, `migrate` (one-off), `api`, `worker`. Em desenvolvimento, o Vite roda com _proxy_ de `/api` para a API, mantendo a mesma origem.                                     |
+| Variante                   | Diferença                                                                                                                                                                               |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Render pago**            | Background Worker (`WORKER_MODE=standalone`) e migrations no `preDeployCommand` (`node dist/migrate.js`, `MIGRATE_ON_BOOT=false`), em planos pagos. Topologia de referência do ADR-010. |
+| **Local (Docker Compose)** | Serviços `postgres`, `migrate` (one-off), `api`, `worker`. Em desenvolvimento, o Vite roda com _proxy_ de `/api` para a API, mantendo a mesma origem.                                   |
 
 ### Configuração (variáveis de ambiente)
 

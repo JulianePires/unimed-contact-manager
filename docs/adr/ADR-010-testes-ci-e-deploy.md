@@ -82,3 +82,11 @@ O job `docker` faz o build da imagem e um smoke test sobre o Compose (`/api/heal
 - (−) O SPA não é servido por CDN; aceitável para o escopo, com cache HTTP agressivo nos assets.
 - (−) Testcontainers exige Docker no ambiente de CI e no ambiente local de quem roda os testes de integração.
 - (−) Custo mensal dos planos pagos durante o período de avaliação.
+
+## Atualização (2026-10-27)
+
+- **CI:** a pendência acima foi resolvida. Os jobs `e2e` (Compose com `docker-compose.e2e.yml`, Playwright em 4 projetos, relatório publicado como artefato) e `lighthouse` (massa do `perf:seed`, Lighthouse CI, relatórios publicados) existem e fazem parte do `CI ok`. No `lighthouse`, só a categoria Acessibilidade bloqueia.
+- **k6** (T-NF01–02) não roda no CI. Os scripts ficam em `perf/k6/` e são executados sob demanda; os resultados estão em [09 §9.8](../09-estrategia-de-testes.md#98-resultados-medidos).
+- **Deploy:** o `render.yaml` declara a topologia "Render pago": web service e background worker (`WORKER_MODE=standalone`), migrations no `preDeployCommand` (`MIGRATE_ON_BOOT=false`) e Postgres `0.1c-256mb`. A variante free (`embedded`, migrations na inicialização) continua suportada pela configuração, mas não está declarada.
+- **Produção:** a aplicação está em `https://agenda-unimed.onrender.com`.
+- **Testcontainers:** usa PostgreSQL 18, a mesma major do Compose e do Render.

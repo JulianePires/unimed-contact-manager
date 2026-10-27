@@ -40,3 +40,8 @@ A listagem precisa de busca por nome, e-mail ou celular. Usuários digitam sem a
 - (+) Busca tolerante a acentos e caixa, com índice, e regra centralizada no banco.
 - (−) Dependência de extensões do PostgreSQL (disponíveis nos provedores gerenciados mais comuns, a confirmar no provedor escolhido).
 - (−) O wrapper fixa o dicionário; alterá-lo exige recriar os índices.
+
+## Atualização (2026-10-27)
+
+- Só o nome usa `f_unaccent(lower(...))`. O índice e a busca de e-mail usam `email::text` com `gin_trgm_ops`, e a comparação `ILIKE` já ignora caixa. Acentos em e-mail não são normalizados, o que é aceitável porque endereços com acento são raros. O índice de celular é trigram direto sobre `mobile_e164`.
+- O RNF09 foi medido com k6 (10 mil contatos, 20 VUs): p95 de 220 ms na listagem e 167 ms na busca ([09 §9.8](../09-estrategia-de-testes.md#98-resultados-medidos)).

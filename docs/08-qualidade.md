@@ -42,7 +42,7 @@ A análise usa o modelo de qualidade de produto da **ISO/IEC 25010:2023**, com n
 
 ### Capacidade de interação (_operabilidade, proteção contra erros, inclusividade, autodescrição_)
 
-- **Inclusividade:** meta WCAG 2.2 AA, com componentes Radix, verificação automática (axe) e manual (teclado e leitor de tela).
+- **Inclusividade:** meta WCAG 2.2 AA, com componentes Radix e verificação automática: axe em testes de componente e em cada tela dos e2e, Lighthouse CI e um cenário e2e executado só com teclado (T-E2E04). Não há registro de verificação com leitor de tela.
 - **Proteção contra erros do usuário:** validação imediata com o mesmo schema da API; confirmação em inativar e eliminar; "Desfazer" após inativar; aviso antes de reimportar um arquivo; `412` impede sobrescrever o trabalho de outra sessão.
 - **Autodescrição e assistência:** mensagens orientadas à ação ("Este celular pertence a um contato inativo. Reativar?"), CSV modelo, relatório de erros por linha e campo.
 - **Engajamento:** atualização otimista e transições respeitando `prefers-reduced-motion`.
@@ -54,7 +54,7 @@ A análise usa o modelo de qualidade de produto da **ISO/IEC 25010:2023**, com n
 - **Integridade sob concorrência:** constraint única como fonte da verdade, provada por T-INT04 e T-INT19.
 - **Atomicidade:** importação, arquivo e job na mesma transação (sem _dual write_), provada por T-INT13.
 - **Disponibilidade:** deploy sem downtime com health checks; _graceful shutdown_.
-- **Riscos:** o plano free do Render hiberna e expira o banco (documentado; a avaliação usa plano pago); não há backup no free.
+- **Riscos:** a publicação usa planos pagos do Render (`render.yaml`); na variante free, o serviço hiberna, o banco expira em 30 dias e não há backup.
 
 ### Segurança (_confidencialidade, integridade, autenticidade, responsabilização, resistência_)
 
@@ -92,41 +92,97 @@ A análise usa o modelo de qualidade de produto da **ISO/IEC 25010:2023**, com n
 
 Não há risco físico ou à vida envolvido. O aspecto aplicável é evitar dano irreversível a dados: eliminação só de contatos inativos, com confirmação explícita, e importação que nunca sobrescreve nem reativa contatos.
 
-## 8.3 Rastreabilidade
+## 8.3 Rastreabilidade e status
 
-| Requisito | UC   | Endpoint(s)                         | ADR      | Testes                   |
-| --------- | ---- | ----------------------------------- | -------- | ------------------------ |
-| RF01      | UC01 | `POST /auth/register`               | 006      | T-INT16, T-E2E01         |
-| RF02      | UC02 | `POST /auth/login`                  | 006      | T-INT16, T-E2E01         |
-| RF03      | UC03 | `POST /auth/logout[-all]`           | 006      | T-INT16, T-UF10          |
-| RF04      | —    | hook de autenticação                | 006      | T-INT16, T-E2E01         |
-| RF05      | UC04 | `POST /contacts`                    | 001, 004 | T-INT01–04, T-UF01–02    |
-| RF06      | UC05 | `GET /contacts`                     | 004      | T-INT06, T-UF06          |
-| RF07      | UC05 | `GET /contacts?q`                   | 005, 009 | T-UB08, T-INT07, T-UF05  |
-| RF08      | UC05 | `GET /contacts?status&favorite`     | 004      | T-INT08, T-UF06          |
-| RF09      | UC06 | `GET /contacts/:id`                 | 004      | T-INT05                  |
-| RF10      | UC07 | `PATCH /contacts/:id`               | 004      | T-INT09, T-UF03          |
-| RF11      | UC08 | `POST /contacts/:id/deactivate`     | 004      | T-INT10                  |
-| RF12      | UC09 | `POST /contacts/:id/reactivate`     | 001, 004 | T-INT10, T-UF02, T-E2E02 |
-| RF13      | UC10 | `PUT/DELETE /contacts/:id/favorite` | 004      | T-INT10, T-UF04          |
-| RF14      | UC11 | `DELETE /contacts/:id`              | 009      | T-INT15                  |
-| RF15      | UC12 | `POST /imports`                     | 002, 003 | T-INT13, T-UF08          |
-| RF16      | UC15 | job `process-import`                | 002, 003 | T-INT11, T-INT12         |
-| RF17      | UC13 | `GET /imports/:id`                  | 002      | T-UF07, T-E2E03          |
-| RF18      | UC14 | `GET /imports/:id/errors`           | 002      | T-INT11                  |
-| RF19      | UC14 | `GET /imports/:id/errors.csv`       | 002, 009 | T-INT17, T-E2E03         |
-| RF20      | UC12 | `GET /imports/template.csv`         | 002      | T-E2E03                  |
-| RF21      | UC13 | `GET /imports`                      | 004      | T-UF08                   |
-| RF22      | UC12 | `POST /imports?force=true`          | 002      | T-INT12, T-INT14, T-UF08 |
-| RF23      | UC13 | `DELETE /imports/:id`               | 009      | T-INT05                  |
+Status verificado no código e nos testes em 27/10/2026: ✅ atendido · ⚠️ parcial · ❌ não atendido. Os números das medições estão em [09 §9.8](09-estrategia-de-testes.md#98-resultados-medidos).
+
+### Requisitos funcionais
+
+| Requisito | UC   | Endpoint(s)                         | ADR      | Testes                                       | Status |
+| --------- | ---- | ----------------------------------- | -------- | -------------------------------------------- | ------ |
+| RF01      | UC01 | `POST /auth/register`               | 006      | T-INT16, T-E2E01                             | ✅     |
+| RF02      | UC02 | `POST /auth/login`                  | 006      | T-INT16, T-E2E01                             | ✅     |
+| RF03      | UC03 | `POST /auth/logout[-all]`           | 006      | T-INT16, T-UF10                              | ✅     |
+| RF04      | —    | hook de autenticação                | 006      | T-INT16, T-UF09, T-E2E01                     | ✅     |
+| RF05      | UC04 | `POST /contacts`                    | 001, 004 | T-INT01–04, T-UF01–02, T-E2E02               | ✅     |
+| RF06      | UC05 | `GET /contacts`                     | 004      | T-INT06, T-UF06, T-NF01                      | ✅     |
+| RF07      | UC05 | `GET /contacts?q`                   | 005, 009 | T-UB08, T-INT07, T-UF05, T-NF01              | ✅     |
+| RF08      | UC05 | `GET /contacts?status&favorite`     | 004      | T-INT08, T-UF06                              | ✅     |
+| RF09      | UC06 | `GET /contacts/:id`                 | 004      | T-INT05, T-E2E05                             | ✅     |
+| RF10      | UC07 | `PATCH /contacts/:id`               | 004      | T-INT09, T-UF03                              | ✅     |
+| RF11      | UC08 | `POST /contacts/:id/deactivate`     | 004      | T-INT10, T-E2E02, T-E2E04                    | ✅     |
+| RF12      | UC09 | `POST /contacts/:id/reactivate`     | 001, 004 | T-INT10, T-UF02, T-E2E02, T-E2E04            | ✅     |
+| RF13      | UC10 | `PUT/DELETE /contacts/:id/favorite` | 004      | T-INT10, T-UF04                              | ✅     |
+| RF14      | UC11 | `DELETE /contacts/:id`              | 009      | T-INT15, teste de componente do detalhe      | ✅     |
+| RF15      | UC12 | `POST /imports`                     | 002, 003 | T-INT13, T-UF08, T-E2E03                     | ✅     |
+| RF16      | UC15 | job `process-import`                | 002, 003 | T-INT11, T-INT12, T-NF02                     | ✅     |
+| RF17      | UC13 | `GET /imports/:id`                  | 002      | T-UF07, T-E2E03                              | ✅     |
+| RF18      | UC14 | `GET /imports/:id/errors`           | 002      | T-INT11, T-E2E03                             | ✅     |
+| RF19      | UC14 | `GET /imports/:id/errors.csv`       | 002, 009 | T-INT17, T-E2E03                             | ✅     |
+| RF20      | UC12 | `GET /imports/template.csv`         | 002      | teste de componente da página de importações | ✅     |
+| RF21      | UC13 | `GET /imports`                      | 004      | teste de componente do histórico             | ✅     |
+| RF22      | UC12 | `POST /imports?force=true`          | 002      | T-INT12, T-INT14, T-UF08, T-E2E03            | ✅     |
+| RF23      | UC13 | `DELETE /imports/:id`               | 009      | T-INT05, teste de componente da exclusão     | ✅     |
+
+### Regras de negócio
+
+| Regra | Onde é garantida                                                                   | Testes                   | Status |
+| ----- | ---------------------------------------------------------------------------------- | ------------------------ | ------ |
+| RN01  | Schemas de `contracts` (API e formulários)                                         | T-UB03, T-UF01           | ✅     |
+| RN02  | `normalizeMobile`/`normalizePhone` (`libphonenumber-js`)                           | T-UB01–02, T-INT01       | ✅     |
+| RN03  | `UNIQUE (owner_id, mobile_e164)`                                                   | **T-INT04**, T-INT02     | ✅     |
+| RN04  | `409 MOBILE_BELONGS_TO_INACTIVE_CONTACT` + `InactiveConflictAlert`                 | T-INT03, T-UF02, T-E2E02 | ✅     |
+| RN05  | Sem unicidade de e-mail                                                            | T-INT01                  | ✅     |
+| RN06  | Filtro por `owner_id`; `404` para recurso alheio                                   | T-INT05, T-E2E05         | ✅     |
+| RN07  | `If-Match`/`ETag` com `version`                                                    | T-INT09, T-UF03          | ✅     |
+| RN08  | Rotas idempotentes                                                                 | T-UB06, T-INT10          | ✅     |
+| RN09  | Anonimização só de inativos                                                        | T-UB06, T-INT15          | ✅     |
+| RN10  | Detecção de BOM, delimitador e encoding; limite de 5 MB                            | T-UB04, T-UF08, T-E2E03  | ✅     |
+| RN11  | `ON CONFLICT DO NOTHING` → `skipped`                                               | T-INT11                  | ✅     |
+| RN12  | `DUPLICATE_IN_FILE` com `firstLine`                                                | T-INT11                  | ✅     |
+| RN13  | Hash do arquivo + `force=true`                                                     | **T-INT12**, T-INT14     | ✅     |
+| RN14  | Status final calculado no domínio                                                  | T-UB09                   | ✅     |
+| RN15  | Arquivo apagado ao fim do processamento; `raw` expurgado após 30 dias (job diário) | T-INT18                  | ✅     |
+| RN16  | `q` fora dos search params do router                                               | T-UF05                   | ✅     |
+
+### Requisitos não funcionais
+
+| RNF   | Evidência                                                                                                                                                  | Status |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| RNF01 | Cookie `HttpOnly; SameSite=Lax`, `Secure` sob HTTPS (`SECURE_TRANSPORT`); nenhum token no JavaScript (T-INT16, T-UF09)                                     | ✅     |
+| RNF02 | argon2id; só o SHA-256 do ID de sessão é gravado (T-INT16)                                                                                                 | ✅     |
+| RNF03 | CSRF por header (T-INT16); CSP estrita + Trusted Types (teste de headers, T-E2E01); CSV injection (T-UB05, T-INT17)                                        | ✅     |
+| RNF04 | `404` para recurso alheio (T-INT05, T-E2E05)                                                                                                               | ✅     |
+| RNF05 | Rate limit por IP e por conta, `429` com `Retry-After` (T-INT16)                                                                                           | ✅     |
+| RNF06 | 20 `POST` simultâneos → 1 × `201`, 19 × `409` (**T-INT04**). A disputa API × worker (T-INT19) não tem teste próprio; a garantia é a mesma constraint       | ✅     |
+| RNF07 | Reprocessamento com `created = 0`; retentativa após falha no 2º lote sem duplicar (**T-INT12**); rollback do enfileiramento (T-INT13)                      | ✅     |
+| RNF08 | `healthCheckPath: /api/health/ready`; `SIGTERM` encerra API e worker de forma graciosa                                                                     | ✅     |
+| RNF09 | k6, 20 VUs, 10 mil contatos: p95 de 220 ms (listagem) e 167 ms (busca), medido localmente (T-NF01)                                                         | ✅     |
+| RNF10 | 10 mil linhas em 7,4 s; p95 durante a importação de 258 ms (listagem) e 238 ms (busca), medido localmente (T-NF02)                                         | ✅     |
+| RNF11 | axe sem violações _serious/critical_ em todas as telas dos e2e; Lighthouse Acessibilidade 100; fluxo só com teclado (T-E2E04) em Chromium, Firefox e móvel | ✅     |
+| RNF12 | Validação ao sair do campo, `ErrorSummary` com foco, mensagens em português, "Reativar" e "Desfazer" (T-UF01–03)                                           | ✅     |
+| RNF13 | E2e em viewport móvel de **390 px**; 320 px não é testado                                                                                                  | ⚠️     |
+| RNF14 | Anonimização, retenção da importação e redação de `q`, cookies e corpo nos logs; **sessões expiradas não são expurgadas** (8.4)                            | ⚠️     |
+| RNF15 | `no-restricted-imports` impede importar repositórios de outro módulo                                                                                       | ✅     |
+| RNF16 | Cobertura de linhas: 100% no backend (unitários + integração), 100% em `contracts`, 98,9% no front                                                         | ✅     |
+| RNF17 | TypeScript strict, ESLint e Biome no CI; logs `pino` com `reqId`                                                                                           | ✅     |
+| RNF18 | `docker compose up` sobe a stack; `render.yaml` versionado                                                                                                 | ✅     |
+| RNF19 | Playwright em Chromium, Firefox, WebKit e móvel; T-E2E04 não roda no WebKit (Tab não foca links, como no Safari padrão)                                    | ✅     |
+| RNF20 | `/api/docs` fora de produção; `docs/openapi.json` versionado e conferido no CI (`openapi:check`)                                                           | ✅     |
 
 ## 8.4 Limitações conhecidas e evolução
 
-| Limitação                             | Impacto                          | Evolução proposta                                                     |
-| ------------------------------------- | -------------------------------- | --------------------------------------------------------------------- |
-| Paginação por offset                  | Lenta em páginas muito profundas | Cursor (keyset) se o volume por usuário crescer em ordens de grandeza |
-| Arquivo em `bytea` (≤ 5 MB)           | Limita o tamanho dos uploads     | Object storage (S3/R2) mantendo pg-boss e a transação para o registro |
-| Uma consulta de sessão por requisição | Carga extra no banco             | Cache em memória com TTL curto                                        |
-| Sem recuperação de senha              | Usuário depende de suporte       | Fluxo por e-mail com token de uso único                               |
-| Sem exportação da agenda              | Portabilidade (LGPD) parcial     | `GET /contacts/export.csv`                                            |
-| Logs da plataforma podem conter `q`   | Exposição residual de PII        | Busca via `POST /contacts/search` ou configuração de logs do provedor |
+| Limitação                                        | Impacto                                                                     | Evolução proposta                                                                                                                      |
+| ------------------------------------------------ | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Sessões expiradas não são removidas do banco     | A tabela cresce; IP e user agent ficam guardados além do necessário (RNF14) | Incluir a remoção de sessões expiradas no job diário `purge-retention`                                                                 |
+| Lighthouse: Performance 71–81 e Boas práticas 93 | Abaixo das metas do T-NF03 (≥ 90 e ≥ 95); no CI, só Acessibilidade bloqueia | Reduzir o JavaScript da carga inicial; resolver os avisos de CSP do sonner, o `favicon.ico` ausente e o `401` de `/auth/me` no console |
+| Viewport de 320 px sem teste automatizado        | Regressões de layout nessa largura passam despercebidas (RNF13)             | Projeto Playwright em 320 px                                                                                                           |
+| Sem verificação registrada com leitor de tela    | Problemas que o axe não detecta podem passar                                | Roteiro manual com NVDA e VoiceOver nos fluxos críticos                                                                                |
+| T-E2E04 (só teclado) não roda no WebKit          | Navegação por teclado no Safari sem cobertura automática                    | Testar com a preferência "Pressionar Tab para destacar cada item" ligada                                                               |
+| Medições de desempenho só locais                 | p95 e tempo de importação em produção não foram medidos                     | k6 contra um ambiente de homologação antes de releases                                                                                 |
+| Paginação por offset                             | Lenta em páginas muito profundas                                            | Cursor (keyset) se o volume por usuário crescer em ordens de grandeza                                                                  |
+| Arquivo em `bytea` (≤ 5 MB)                      | Limita o tamanho dos uploads                                                | Object storage (S3/R2) mantendo pg-boss e a transação para o registro                                                                  |
+| Uma consulta de sessão por requisição            | Carga extra no banco                                                        | Cache em memória com TTL curto                                                                                                         |
+| Sem recuperação de senha                         | Usuário depende de suporte                                                  | Fluxo por e-mail com token de uso único                                                                                                |
+| Sem exportação da agenda                         | Portabilidade (LGPD) parcial                                                | `GET /contacts/export.csv`                                                                                                             |
+| Logs da plataforma podem conter `q`              | Exposição residual de PII                                                   | Busca via `POST /contacts/search` ou configuração de logs do provedor                                                                  |

@@ -27,7 +27,7 @@ flowchart TB
 | ------------------------- | ---------------------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------ |
 | Unitário (back/contracts) | Vitest                                                                                   | Node, sem I/O    | Pre-commit (afetados) e todo PR                        |
 | Componente (front)        | Vitest, Testing Library, `user-event`, MSW, `vitest-axe`                                 | jsdom            | Todo PR                                                |
-| Integração (back)         | Vitest, Testcontainers (PostgreSQL 16), `fastify.inject`, pg-boss real                   | Docker           | Todo PR                                                |
+| Integração (back)         | Vitest, Testcontainers (PostgreSQL 18), `fastify.inject`, pg-boss real                   | Docker           | Todo PR                                                |
 | E2E                       | Playwright (Chromium, Firefox, WebKit; viewport desktop e móvel), `@axe-core/playwright` | Docker Compose   | Todo PR para `main`                                    |
 | Não funcional             | k6, Lighthouse CI, `pnpm audit`, gitleaks                                                | CI / sob demanda | PR (Lighthouse, audit, gitleaks); k6 antes de releases |
 
@@ -69,7 +69,7 @@ flowchart TB
 | T-INT15     | Anonimizar ativo / inativo / repetido; recadastrar o celular liberado                         | `409` / `204` / `404`; novo cadastro `201`                                                                                 | RF14, RN09             |
 | T-INT16     | Auth: login, `me`, logout invalida sessão; sessão expirada; mutação sem header; brute force   | `200`/`401` após logout/`401`/`403`/`429`                                                                                  | RF02–RF04, RNF01–RNF05 |
 | T-INT17     | `errors.csv` com célula `=HYPERLINK("http://x")`                                              | Célula exportada como `'=HYPERLINK(…)`                                                                                     | RNF03                  |
-| T-INT18     | Expurgo com relógio avançado em 31 dias                                                       | `raw = null`; contadores preservados; sessões expiradas removidas                                                          | RN15                   |
+| T-INT18     | Expurgo com relógio avançado em 31 dias                                                       | `raw = null`; contadores preservados (sessões expiradas não são expurgadas, ver 9.8)                                       | RN15                   |
 | T-INT19     | Worker importa celular X enquanto a API cadastra X                                            | Um único contato; o outro lado recebe `409` ou `skipped`                                                                   | RNF06                  |
 
 ### Componente — frontend (T-UF)
@@ -110,7 +110,7 @@ flowchart TB
 ## 9.4 Dados e ambiente de teste
 
 - **Factories** (`test/helpers/factories.ts`) para usuários, contatos e importações, com sobrescrita parcial.
-- **Fixtures CSV** versionadas: `valido-utf8.csv`, `valido-bom.csv`, `excel-win1252-ponto-virgula.csv`, `erros-variados.csv`, `duplicata-interna.csv`, `cabecalho-invalido.csv`, `formula-injection.csv`, `10k-linhas.csv` (gerado).
+- **Fixtures CSV** versionadas em `apps/api/test/fixtures/`: `utf8-virgula.csv`, `utf8-bom-ponto-e-virgula.csv`, `win1252-ponto-e-virgula.csv`, `linhas-invalidas.csv` (inclui a célula `=HYPERLINK(...)` do T-INT17), `duplicados-no-arquivo.csv`, `cabecalho-invalido.csv` e `10k-linhas.csv` (gerado, não versionado).
 - **Isolamento:** um container PostgreSQL por _worker_ do Vitest; cada teste roda em schema limpo (truncate entre testes) ou transação revertida, conforme o caso. Cenários com pg-boss usam truncate.
 - **Relógio:** `Clock` injetável no domínio; `vi.useFakeTimers` no front.
 - **MSW:** handlers tipados pelos `contracts`; cenários de erro por `server.use(...)` no próprio teste.
@@ -162,3 +162,66 @@ flowchart LR
 | RNF06                  | **T-INT04**, T-INT19                                                  |
 | RNF07                  | **T-INT12**, T-INT13                                                  |
 | RNF11                  | T-UF01, T-UF11, T-E2E04, T-NF03                                       |
+
+## 9.8 Resultados medidos
+
+Execução de 27/10/2026, na versão da `main` com os testes E2E (#20). Medições locais num notebook com Intel Core i5-1235U (10 núcleos) e 16 GB de RAM; Docker Desktop com 12 CPUs e 8 GB; stack do `docker compose`.
+
+### Testes e cobertura
+
+| Suíte                                             | Testes                                 | Linhas | Branches | Funções |
+| ------------------------------------------------- | -------------------------------------- | ------ | -------- | ------- |
+| Backend: unitários + integração (`test:coverage`) | 509 em 43 arquivos                     | 100%   | 97,1%    | 100%    |
+| `packages/contracts`                              | 133 em 7 arquivos                      | 100%   | 100%     | 100%    |
+| Frontend (componentes e hooks)                    | 218 em 17 arquivos                     | 98,9%  | 95,7%    | 98,8%   |
+| E2E (Playwright + axe)                            | 5 cenários × 4 projetos = 20 execuções | —      | —        | —       |
+- As metas da seção 9.5 (domínio ≥ 90%, global ≥ 80% de linhas, branches ≥ 70%) são atendidas.
+- **E2E:** 19 execuções verdes e 1 pulada (T-E2E04 no WebKit), sem violações axe _serious/critical_; a suíte completa leva de 1 min 40 s a 2 min.
+- **T-E2E04 no WebKit:** pulado de propósito. Como no Safari padrão, o Tab do WebKit não foca links, e o Playwright não liga essa preferência.
+- **Instabilidade observada:** rodando as suítes do backend e do front em sequência na mesma máquina, 4 testes do front estouraram o timeout de 5 s; isolados, passaram em duas execuções seguidas. Não reproduzido no CI.
+
+### Casos não implementados como especificados
+
+| Caso    | Situação                                                                                                                           |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| T-INT18 | Cobre o expurgo de `raw` e a preservação dos contadores. Sessões expiradas **não** são removidas: a limpeza não foi implementada.  |
+| T-INT19 | Sem teste da disputa API × worker. Há teste de duas execuções do worker no mesmo lote; a garantia é a mesma constraint do T-INT04. |
+
+### k6 (T-NF01 e T-NF02)
+
+Scripts em `perf/k6/`; massa de carga com `perf:seed` (10 mil contatos num usuário). k6 1.3.0 em container, contra `host.docker.internal:3000`.
+
+**T-NF01:** 20 VUs por 60 s, sem pausa entre requisições.
+
+| Endpoint                                     | Requisições | Média  | p90    | **p95**    | p99    | Máx.   | Erros |
+| -------------------------------------------- | ----------- | ------ | ------ | ---------- | ------ | ------ | ----- |
+| `GET /contacts` (página 1–400, 4 ordenações) | 4.396       | 152 ms | 202 ms | **220 ms** | 270 ms | 400 ms | 0%    |
+| `GET /contacts?q=` (nome, e-mail e celular)  | 4.396       | 120 ms | 150 ms | **167 ms** | 211 ms | 321 ms | 0%    |
+
+Vazão de 146 req/s. Meta p95 < 300 ms: **atingida**.
+
+**T-NF02:** importação de 10 mil linhas (100 inválidas), com 20 VUs na listagem e na busca. Só entram na medição as requisições feitas enquanto a importação estava em andamento.
+
+| Métrica                              | Resultado                                    | Meta     |
+| ------------------------------------ | -------------------------------------------- | -------- |
+| Envio → fim da importação            | **7,4 s** (6,2 s de processamento no worker) | < 60 s   |
+| p95 da listagem durante a importação | **258 ms** (p99 285 ms; máx. 297 ms)         | < 500 ms |
+| p95 da busca durante a importação    | **238 ms** (p99 297 ms; máx. 350 ms)         | < 500 ms |
+| Erros                                | 0%                                           | —        |
+
+Resultado: 9.900 contatos criados e 100 linhas com erro, como esperado. A amostra durante a importação é pequena (340 listagens e 340 buscas), porque ela termina rápido.
+
+### Lighthouse CI (T-NF03)
+
+Configuração em `lighthouserc.json`: mediana de 3 execuções; `/contatos` e `/importacoes/:id` auditadas com a conta do `perf:seed`. Execução local no Chromium do Playwright.
+
+| Página             | Acessibilidade | Boas práticas | Performance |
+| ------------------ | -------------- | ------------- | ----------- |
+| `/entrar`          | 100            | 93            | 71          |
+| `/contatos`        | 100            | 93            | 72          |
+| `/importacoes/:id` | 100            | 93            | 81          |
+| **Meta**           | ≥ 95           | ≥ 95          | ≥ 90        |
+- **Acessibilidade: atingida.** É a única categoria que bloqueia o job no CI.
+- **Boas práticas: não atingida.** As causas são erros no console: a cópia de CSS que o sonner injeta e a CSP bloqueia (ADR-008), o `401` esperado de `/auth/me` em `/entrar` e o `favicon.ico` ausente.
+- **Performance: não atingida.** O peso principal é o tempo de bloqueio da thread principal (0,5 a 2,5 s com a CPU desacelerada que o Lighthouse simula). A variação entre execuções é grande (em `/entrar`: 48, 83 e 71).
+- No CI, Boas práticas e Performance geram aviso, sem bloquear.

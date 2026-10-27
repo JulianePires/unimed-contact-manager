@@ -174,7 +174,7 @@ sequenceDiagram
     Q-->>P: atualiza progressbar
     P->>P: useEffectEvent → anuncia marcos (25/50/75/100%) em aria-live
   end
-  Note over P: Aba oculta com <Activity mode="hidden">:<br/>effects desmontados → polling pausa
+  Note over P: Ao sair da página, a query fica sem observadores:<br/>o polling para
   P->>Q: status terminal → refetchInterval = false
   P->>A: GET /imports/:id/errors?page=1 (se failed > 0)
 ```

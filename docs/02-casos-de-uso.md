@@ -113,7 +113,7 @@ Convenções: **FP** = fluxo principal · **FA** = fluxo alternativo · **FE** =
 
 ### UC08 — Inativar contato
 
-- **FP:** o usuário aciona "Inativar" → o sistema pede confirmação → grava `deactivated_at` → o contato sai da lista de ativos com opção "Desfazer" (que executa UC09).
+- **FP:** o usuário aciona "Inativar" → o sistema pede confirmação → grava `deactivated_at` → o detalhe passa a mostrar o status "Inativo", e o aviso de sucesso oferece "Desfazer" (que executa UC09); o contato sai da lista de ativos.
 - **FA1 — já inativo:** operação idempotente; responde com o estado atual.
 - **Pós-condição:** contato inativo; o celular continua reservado (RN03).
 
@@ -179,4 +179,5 @@ Convenções: **FP** = fluxo principal · **FA** = fluxo alternativo · **FE** =
 ### UC16 — Expurgar dados retidos (Agendador)
 
 - **Gatilho:** diário.
-- **FP:** remove `import_errors.raw` com mais de 30 dias e sessões expiradas; registra a quantidade expurgada em log (sem dados pessoais).
+- **FP:** remove `import_errors.raw` com mais de 30 dias; registra a quantidade expurgada em log (sem dados pessoais).
+- **Limitação:** sessões expiradas não são removidas da tabela `sessions`; deixam de valer pela checagem de `expires_at` a cada requisição ([08 §8.4](08-qualidade.md#84-limitações-conhecidas-e-evolução)).

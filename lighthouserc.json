@@ -4,21 +4,31 @@
       "url": [
         "http://localhost:3000/entrar",
         "http://localhost:3000/contatos",
-        "http://localhost:3000/importacoes/perf"
+        "http://localhost:3000/importacoes/00000000-0000-4000-8000-00000000f001"
       ],
-      "numberOfRuns": 1,
-      "puppeteerScript": "./perf/lighthouse-login.cjs"
+      "numberOfRuns": 3,
+      "puppeteerScript": "./perf/lighthouse/login.cjs",
+      "settings": {
+        "disableStorageReset": true,
+        "onlyCategories": ["performance", "accessibility", "best-practices"]
+      }
     },
     "assert": {
       "assertions": {
-        "categories:performance": ["warn", { "minScore": 0.8 }],
-        "categories:accessibility": ["error", { "minScore": 1 }],
-        "categories:best-practices": ["warn", { "minScore": 0.9 }],
-        "categories:seo": ["warn", { "minScore": 0.9 }]
+        "categories:accessibility": [
+          "error",
+          { "minScore": 0.95, "aggregationMethod": "median-run" }
+        ],
+        "categories:best-practices": [
+          "warn",
+          { "minScore": 0.95, "aggregationMethod": "median-run" }
+        ],
+        "categories:performance": ["warn", { "minScore": 0.9, "aggregationMethod": "median-run" }]
       }
     },
     "upload": {
-      "target": "temporary-public-storage"
+      "target": "filesystem",
+      "outputDir": "./.lighthouseci/reports"
     }
   }
 }

@@ -99,3 +99,20 @@ As listagens (contatos, histórico e erros de importação) são compostas com *
 - (−) Ecossistema TanStack (Router/Form/Table) é menos conhecido por parte dos avaliadores. As escolhas ficam justificadas aqui.
 - (−) TanStack Table v9 é uma versão recente (API com `tableFeatures`/`useTable`, diferente da v8); exemplos antigos da comunidade não se aplicam diretamente.
 - (−) Busca não é restaurada por link compartilhado (decisão de privacidade).
+
+## Atualização (2026-10-27)
+
+**Recursos do React não implementados:**
+
+- **`<Activity>`:** as abas Contatos e Importações são rotas comuns. Ao sair de uma aba, o estado da página não é preservado, e o polling para porque a query fica sem observadores.
+- **`<ViewTransition>`:** não há transição animada entre a lista e o detalhe.
+- **Fragment refs:** o foco é gerenciado com refs comuns (`ErrorSummary`, `InactiveConflictAlert`, título após inativar) e pelos diálogos do Radix.
+
+**Implementados como descrito:** React Compiler, `useOptimistic` (favorito), `useDeferredValue` + debounce (busca), `useEffectEvent` (anúncios da importação), `<title>` por rota, Suspense com `useSuspenseQuery` e divisão de código por rota (`autoCodeSplitting` do TanStack Router).
+
+**Demais divergências:**
+
+- **Formulários:** o envio revalida os valores atuais antes do `handleSubmit` (`submitForm` em `lib/form.ts`). Sem isso, Enter no último campo, sem sair dele, era bloqueado pelo erro "vazio" gravado ao sair do campo anterior.
+- **E2E:** são 5 cenários (autenticação, conflito com inativo, importação, fluxo só com teclado e isolamento), rodando em Chromium, Firefox, WebKit e viewport móvel, com axe em cada tela. O cenário só com teclado é pulado no WebKit, que, como o Safari padrão, não foca links com Tab.
+- **Lighthouse CI:** só Acessibilidade (≥ 95) bloqueia; Performance e Boas práticas geram aviso. A medição local deu Performance de 71 a 81 e Boas práticas 93, abaixo das metas ([09 §9.8](../09-estrategia-de-testes.md#98-resultados-medidos)).
+- **Verificação manual:** a navegação por teclado é coberta pelo T-E2E04. Não há registro de verificação com leitor de tela.

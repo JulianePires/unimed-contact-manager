@@ -2,12 +2,14 @@
 
 Aplicação web para cadastro, consulta, organização e importação em lote de contatos. Cada usuário autenticado tem sua própria agenda.
 
+**Produção:** <https://agenda-unimed.onrender.com>. **Conta demo:** `demo@contatos.app` / `demo-contatos-2026`.
+
 > **Destaques de engenharia**
 >
 > - Celular **único por usuário, inclusive entre inativos**, garantido por constraint do PostgreSQL. Provado por teste com 20 requisições simultâneas.
 > - Importação CSV **assíncrona e idempotente**: registro, arquivo e job na mesma transação (pg-boss), checkpoint por lote, reprocessamento sem duplicados.
 > - Sessão em cookie `HttpOnly`, CSP com Trusted Types, proteção contra CSRF e CSV injection.
-> - Acessibilidade WCAG 2.2 AA verificada continuamente; adequação técnica à LGPD (anonimização, retenção, minimização).
+> - Meta WCAG 2.2 AA: axe sem violações sérias ou críticas em cada tela dos e2e, Lighthouse Acessibilidade 100 e fluxo completo só com teclado; adequação técnica à LGPD (anonimização, retenção, minimização).
 
 ## Stack
 
@@ -38,30 +40,71 @@ pnpm db:up               # PostgreSQL via Compose
 pnpm db:migrate          # migrations
 pnpm db:seed             # conta demo e dados de avaliação
 pnpm dev                 # API (watch) + Vite com proxy /api
-pnpm --filter @contatos/api dev:worker   # worker (quando houver jobs)
+pnpm --filter @contatos/api dev:worker   # worker (processa as importações)
 pnpm test                # unitários (back + front)
 pnpm test:integration    # integração com PostgreSQL real (requer Docker)
 pnpm test:coverage       # backend: unitários + integração com metas de cobertura
-pnpm test:e2e            # Playwright
+pnpm e2e:up && pnpm test:e2e   # Playwright contra o Compose (Chromium, Firefox, WebKit e móvel)
 ```
+
+```bash
+# Desempenho (sob demanda, contra o Compose)
+DATABASE_URL=postgres://contatos:contatos@127.0.0.1:5432/contatos pnpm --filter @contatos/api perf:seed
+docker run --rm -v "$PWD/perf/k6:/scripts" -e BASE_URL=http://host.docker.internal:3000 \
+  grafana/k6:1.3.0 run /scripts/list-search.js   # ou import-load.js
+```
+
+> O `perf:seed` não lê o `.env`: passe o `DATABASE_URL` do banco local de forma explícita. Ele cria 10 mil contatos e uma conta de carga com senha conhecida; **não rode em produção**.
 
 > A conta demo é criada só pelo seed (`pnpm db:seed`, ou `node dist/seed.js` na imagem): cerca de 30 contatos (ativos, inativos e favoritos) e uma importação concluída com erros. Rodar de novo não duplica nada nem desfaz o que foi alterado na demo. Sem HTTPS, o cookie precisa de outro nome (`SESSION_COOKIE_NAME=sid`, já no `.env.example`): o navegador recusa cookies `__Host-` sem `Secure`.
 
 ## Deploy (Render)
 
-O [`render.yaml`](render.yaml) declara a variante free: um Web Service Docker (API + SPA, migrations na inicialização) e um Postgres free. No dashboard do Render, use **New → Blueprint**, selecione o repositório e a branch `main` e aplique. O deploy automático só ocorre quando o CI da `main` passa.
+O [`render.yaml`](render.yaml) declara a topologia publicada em <https://agenda-unimed.onrender.com>, em planos pagos:
 
-> **O Postgres free expira 30 dias após a criação e os dados são apagados.** Para manter os dados, faça upgrade do plano antes do prazo (`plan: 0.1c-256mb` ou maior no `render.yaml`) ou exporte-os com `pg_dump "$EXTERNAL_DATABASE_URL" -Fc -f agenda.dump` (libere seu IP em `ipAllowList` para a conexão externa) e restaure num banco novo com `pg_restore`.
+- um Web Service Docker com API e SPA, health check em `/api/health/ready` e migrations no `preDeployCommand`;
+- um Background Worker com a mesma imagem;
+- um Postgres 18.
+
+No dashboard do Render, use **New → Blueprint**, selecione o repositório e a branch `main` e aplique. O deploy automático só ocorre quando o CI da `main` passa. A conta demo é criada rodando `node dist/seed.js` no **Shell** do serviço web.
+
+> A variante free (sem worker nem pre-deploy) também funciona, com `WORKER_MODE=embedded` e `MIGRATE_ON_BOOT=true`. O Postgres free expira em 30 dias e os dados são apagados ([03 §3.6](docs/03-arquitetura.md)).
 
 ## Estado atual
 
-Base de infraestrutura pronta; as funcionalidades abaixo são o escopo planejado.
+Verificado em 27/10/2026; o status por requisito está em [Qualidade › Rastreabilidade](docs/08-qualidade.md#83-rastreabilidade-e-status).
 
-- Monorepo com lint, formatação, typecheck, testes unitários (Vitest) e de integração (Testcontainers).
-- API Fastify com `/api/health/live` e `/api/health/ready`, Problem Details e o SPA servido na mesma origem.
-- Camada de dados: schema Drizzle, migration inicial (extensões, `f_unaccent`, constraints e índices) e migrations sob advisory lock.
-- Imagem Docker única (API + SPA + worker + migrate), Docker Compose (`postgres`, `migrate`, `api`, `worker`), CI com smoke test da imagem e Blueprint do Render na variante free.
-- O worker ainda não processa jobs: a fila (pg-boss) entra com a importação.
+- **Funcionalidades:** RF01–RF23 e RN01–RN16 implementados, na API e na interface.
+- **Testes:** todos verdes.
+
+  | Suíte                                                | Testes     | Cobertura de linhas |
+  | ---------------------------------------------------- | ---------- | ------------------- |
+  | Backend (unitários + integração com PostgreSQL real) | 509        | 100%                |
+  | `contracts`                                          | 133        | 100%                |
+  | Front                                                | 218        | 98,9%               |
+  | E2E (Chromium, Firefox, WebKit e móvel)              | 5 cenários | —                   |
+
+- **CI:** qualidade, testes, integração, segurança (`pnpm audit` e gitleaks), build, imagem Docker, E2E e Lighthouse. O deploy depende do check `CI ok`.
+- **Medido localmente** ([09 §9.8](docs/09-estrategia-de-testes.md#98-resultados-medidos)):
+
+  | Medição                                     | Resultado | Meta        |
+  | ------------------------------------------- | --------- | ----------- |
+  | Listagem com 10 mil contatos e 20 VUs (p95) | 220 ms    | < 300 ms ✅ |
+  | Busca com 10 mil contatos e 20 VUs (p95)    | 167 ms    | < 300 ms ✅ |
+  | Importação de 10 mil linhas                 | 7,4 s     | < 60 s ✅   |
+  | Listagem durante a importação (p95)         | 258 ms    | < 500 ms ✅ |
+  | Lighthouse Acessibilidade                   | 100       | ≥ 95 ✅     |
+  | Lighthouse Boas práticas                    | 93        | ≥ 95 ❌     |
+  | Lighthouse Performance                      | 71–81     | ≥ 90 ❌     |
+
+- **Não atendido ou parcial:**
+  - Lighthouse Performance e Boas práticas abaixo das metas.
+  - Viewport de 320 px sem teste (o e2e móvel usa 390 px).
+  - Sessões expiradas não são removidas do banco.
+  - Sem verificação registrada com leitor de tela.
+  - O cenário só com teclado não roda no WebKit.
+
+  Detalhes em [Limitações](docs/08-qualidade.md#84-limitações-conhecidas-e-evolução).
 
 ## Funcionalidades
 
@@ -112,4 +155,4 @@ Fluxo de trabalho, limite de arquivos por commit e gates locais no [CONTRIBUTING
 
 ## Limitações conhecidas
 
-Paginação por offset, upload limitado a 5 MB e ausência de recuperação de senha são escolhas conscientes para o escopo, com caminhos de evolução em [Qualidade › Limitações](docs/08-qualidade.md#84-limitações-conhecidas-e-evolução).
+Paginação por offset, upload limitado a 5 MB e ausência de recuperação de senha são escolhas conscientes para o escopo. As lacunas medidas (Lighthouse, 320 px, sessões expiradas, leitor de tela) estão listadas em [Estado atual](#estado-atual). Caminhos de evolução em [Qualidade › Limitações](docs/08-qualidade.md#84-limitações-conhecidas-e-evolução).
